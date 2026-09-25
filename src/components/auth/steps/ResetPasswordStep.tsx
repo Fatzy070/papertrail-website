@@ -28,10 +28,10 @@ export function ResetPasswordStep({ email, onBackToLogin }: { email: string; onB
 
   if (!email) {
     return (
-      <div style={{ textAlign: 'center' }}>
+      <div className="text-center">
         <h1>Missing Information</h1>
         <p className="muted">Please restart the password reset process.</p>
-        <button type="button" onClick={onBackToLogin} className="primary-button auth-submit" style={{ marginTop: '24px' }}>
+        <button type="button" onClick={onBackToLogin} className="primary-button auth-submit mt-6">
           Go back to login
         </button>
       </div>
@@ -40,13 +40,13 @@ export function ResetPasswordStep({ email, onBackToLogin }: { email: string; onB
 
   if (success) {
     return (
-      <div style={{ textAlign: 'center' }}>
+      <div className="text-center">
         <CheckCircle2 size={48} className="text-green-500 mb-4 mx-auto" />
         <h1>Password reset successfully</h1>
         <p className="muted">
           Your password has been changed. You can now sign in with your new password.
         </p>
-        <button type="button" onClick={onBackToLogin} className="primary-button auth-submit" style={{ marginTop: '24px' }}>
+        <button type="button" onClick={onBackToLogin} className="primary-button auth-submit mt-6">
           Continue to login
         </button>
       </div>

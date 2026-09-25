@@ -11,6 +11,7 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { AuthShell } from './components/auth/AuthShell'
 import { SupportPage } from './pages/SupportPage'
 import { WorkspacePlaceholderPage } from './pages/WorkspacePlaceholderPage'
+import { MainLayout } from './layouts/MainLayout'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
@@ -35,17 +36,19 @@ function App() {
             <Route path="/reset-password" element={<RedirectWithParams to="/auth" step="reset-password" />} />
           </Route>
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/support" element={<SupportPage />} />
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/support" element={<SupportPage />} />
+              <Route path="/recent" element={<WorkspacePlaceholderPage />} />
+              <Route path="/starred" element={<WorkspacePlaceholderPage />} />
+              <Route path="/trash" element={<WorkspacePlaceholderPage />} />
+              <Route path="/tools/merge" element={<WorkspacePlaceholderPage />} />
+              <Route path="/tools/split" element={<WorkspacePlaceholderPage />} />
+              <Route path="/tools/compress" element={<WorkspacePlaceholderPage />} />
+              <Route path="/tools/convert" element={<WorkspacePlaceholderPage />} />
+            </Route>
             <Route path="/documents/:documentId/edit" element={<EditorPage />} />
-            <Route path="/recent" element={<WorkspacePlaceholderPage />} />
-            <Route path="/starred" element={<WorkspacePlaceholderPage />} />
-            <Route path="/trash" element={<WorkspacePlaceholderPage />} />
-            <Route path="/tools/merge" element={<WorkspacePlaceholderPage />} />
-            <Route path="/tools/split" element={<WorkspacePlaceholderPage />} />
-            <Route path="/tools/compress" element={<WorkspacePlaceholderPage />} />
-            <Route path="/tools/convert" element={<WorkspacePlaceholderPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

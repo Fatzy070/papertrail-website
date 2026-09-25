@@ -71,7 +71,7 @@ export function VersionHistory({
           Could not load version history.
         </p>
       ) : (
-        <div style={{ maxHeight: '60vh', overflow: 'auto' }}>
+        <div className="version-history-list">
           {versions.data?.map((version) => (
             <div className="version-row" key={version.id}>
               <div>

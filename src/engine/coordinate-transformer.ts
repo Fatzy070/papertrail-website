@@ -1,5 +1,5 @@
 import type { PDFPageProxy } from 'pdfjs-dist'
-import type { PdfPageInfo, TextElement } from '../types/editor'
+import type { EditorPage, TextElement } from '../types/editor'
 
 export interface ViewportRect {
   left: number
@@ -29,7 +29,7 @@ export function viewportRectToPageRect(
 
 export function pageRectToCss(
   rect: { x: number; y: number; width: number; height: number; rotation: number },
-  _page: PdfPageInfo,
+  _page: EditorPage,
   zoom: number,
 ): ViewportRect {
   return {

@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import { type SupportTicketCategory } from '../api/support-tickets.api'
 import { useCreateSupportTicket, useMySupportTickets } from '../hooks/use-support-tickets'
 import { useToastStore } from '../store/toast-store'
-import { WorkspaceSidebar } from '../components/dashboard/WorkspaceSidebar'
 
 const categories: Array<{ value: SupportTicketCategory; label: string }> = [
   { value: 'GENERAL', label: 'General question' },
@@ -41,9 +40,7 @@ export function SupportPage() {
   }
 
   return (
-    <main className="workspace-layout">
-      <WorkspaceSidebar />
-      <section className="workspace-main">
+    <>
         <div className="workspace-content support-page">
           <Link className="text-link" to="/dashboard"><ArrowLeft size={15} /> Back to home</Link>
           <header className="workspace-heading support-heading">
@@ -63,7 +60,6 @@ export function SupportPage() {
             </section>
           </div>
         </div>
-      </section>
-    </main>
+    </>
   )
 }

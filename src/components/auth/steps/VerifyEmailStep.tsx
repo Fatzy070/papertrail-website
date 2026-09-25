@@ -48,7 +48,7 @@ export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBac
 
   if (success) {
     return (
-      <div style={{ textAlign: 'center' }}>
+      <div className="text-center">
         <CheckCircle2 size={48} className="text-green-500 mb-4 mx-auto" />
         <h1>Email verified</h1>
         <p className="muted">
@@ -92,23 +92,23 @@ export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBac
         </button>
       </form>
       
-      <p className="auth-switch" style={{ marginTop: '24px' }}>
+      <p className="auth-switch mt-6">
         Didn't receive it?{' '}
         <button 
           type="button" 
           onClick={() => void handleResend()} 
           disabled={resend.isPending}
-          style={{ background: 'none', border: 'none', padding: 0, fontSize: '1rem', fontWeight: 500, color: 'var(--brand-color)', cursor: 'pointer', textDecoration: 'underline' }}
+          className="auth-link-button"
         >
           {resend.isPending ? 'Sending...' : 'Resend code'}
         </button>
       </p>
 
-      <div style={{ textAlign: 'center', marginTop: '16px' }}>
+      <div className="text-center mt-4">
         <button 
           type="button" 
           onClick={() => void handleSignOut()} 
-          style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.875rem', color: 'var(--muted-color)', cursor: 'pointer', textDecoration: 'underline' }}
+          className="auth-link-button subtle"
         >
           Sign in as a different user
         </button>

@@ -1,7 +1,5 @@
 import { ArrowLeft, Clock3, FileOutput, Files, Minimize2, Scissors, Star, Trash2 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
-import { WorkspaceSidebar } from '../components/dashboard/WorkspaceSidebar'
-
 const pageCopy: Record<string, { title: string; description: string; icon: typeof Files }> = {
   '/recent': { title: 'Recent', description: 'Recently opened documents will appear here.', icon: Clock3 },
   '/starred': { title: 'Starred', description: 'Star important documents to find them quickly.', icon: Star },
@@ -17,9 +15,7 @@ export function WorkspacePlaceholderPage() {
   const copy = pageCopy[location.pathname] ?? pageCopy['/recent']
   const Icon = copy.icon
   return (
-    <main className="workspace-layout">
-      <WorkspaceSidebar />
-      <section className="workspace-main">
+    <>
         <div className="workspace-content centered-empty-page">
           <Link className="text-link" to="/dashboard"><ArrowLeft size={15} /> Back to home</Link>
           <div className="empty-state">
@@ -29,7 +25,6 @@ export function WorkspacePlaceholderPage() {
             <span className="coming-soon-badge">Coming soon</span>
           </div>
         </div>
-      </section>
-    </main>
+    </>
   )
 }

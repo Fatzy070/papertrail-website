@@ -72,7 +72,7 @@ export function AuthShell() {
         <span>Your document workspace</span>
         <ThemeToggle />
       </header>
-      <section className="auth-card" style={{ overflow: 'hidden' }}>
+      <section className="auth-card overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}

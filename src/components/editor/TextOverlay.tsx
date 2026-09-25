@@ -13,11 +13,18 @@ export function TextOverlay({
 }) {
   const rect = pageRectToCss(
     element,
-    { index: element.pageIndex, width: 0, height: 0, rotation: 0 },
+    { id: element.pageId, width: 0, height: 0, rotation: 0 } as any,
     zoom,
   )
   const update = useEditorStore((s) => s.updateElement)
   const selected = useEditorStore((s) => s.selectedElementId === element.id)
+  const activeTool = useEditorStore((s) => s.activeTool)
+  const setActiveTool = useEditorStore((s) => s.setActiveTool)
+  
+  const isPdfText = element.source === 'pdf'
+  const isEditable = activeTool === 'edit-text'
+  const isPointer = activeTool === 'pointer'
+
   const start = useRef<{
     x: number
     y: number
@@ -25,7 +32,12 @@ export function TextOverlay({
     top: number
   } | null>(null)
   function drag(event: PointerEvent<HTMLDivElement>) {
+    if (element.locked) return
     onSelect(element.id)
+    
+    // Extracted PDF text is never draggable. Added text is only draggable in pointer mode.
+    if (isPdfText || !isPointer) return
+
     start.current = {
       x: event.clientX,
       y: event.clientY,
@@ -35,7 +47,7 @@ export function TextOverlay({
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   function finish(event: PointerEvent<HTMLDivElement>) {
-    if (!start.current) return
+    if (!start.current || element.locked) return
     const dx = (event.clientX - start.current.x) / zoom
     const dy = (event.clientY - start.current.y) / zoom
     if (Math.abs(dx) + Math.abs(dy) > 2)
@@ -59,6 +71,13 @@ export function TextOverlay({
         minHeight: rect.height,
         transform: `rotate(${rect.rotation}deg)`,
         transformOrigin: 'top left',
+        pointerEvents: isPointer && isPdfText ? 'none' : 'auto',
+        userSelect: isPointer && isPdfText ? 'none' : 'text',
+      }}
+      onDoubleClick={() => {
+        if (!isPdfText && isPointer) {
+          setActiveTool('edit-text')
+        }
       }}
       onPointerDown={drag}
       onPointerUp={finish}
@@ -66,35 +85,49 @@ export function TextOverlay({
         if (e.key === 'Enter') onSelect(element.id)
       }}
     >
-      {selected ? (
-        <input
+      {selected && isEditable ? (
+        <textarea
           aria-label="Selected PDF text"
           value={element.text}
           onChange={(e) => update(element.id, { text: e.target.value })}
           onPointerDown={(e) => e.stopPropagation()}
+          disabled={element.locked}
           style={{
             fontSize: element.fontSize * zoom,
-            color: element.color,
-            lineHeight: 1,
+            fontFamily: element.fontFamily,
+            fontWeight: element.bold ? 'bold' : 'normal',
+            fontStyle: element.italic ? 'italic' : 'normal',
+            textAlign: element.textAlign || 'left',
+            color: element.link && (element.color === '#1f2937' || element.color === '#000000') ? '#2563eb' : element.color,
+            textDecoration: element.link ? 'underline' : 'none',
+            lineHeight: element.lineHeight || 1.2,
             width: '100%',
-            background: '#fff',
+            height: '100%',
+            background: 'rgba(255, 255, 255, 0.9)',
             border: 0,
             outline: 0,
             padding: 0,
+            resize: 'none',
+            overflow: 'hidden',
           }}
         />
       ) : (
         <span
           style={{
             display: 'block',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'pre-wrap',
             fontSize: element.fontSize * zoom,
+            fontFamily: element.fontFamily,
+            fontWeight: element.bold ? 'bold' : 'normal',
+            fontStyle: element.italic ? 'italic' : 'normal',
+            textAlign: element.textAlign || 'left',
             color:
-              element.edited || element.source === 'user'
-                ? element.color
+              element.edited || element.source === 'user' || element.link
+                ? (element.link && (element.color === '#1f2937' || element.color === '#000000') ? '#2563eb' : element.color)
                 : 'transparent',
-            background: element.edited ? 'white' : 'transparent',
-            lineHeight: 1,
+            background: element.edited ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+            lineHeight: element.lineHeight || 1.2,
+            textDecoration: element.link ? 'underline' : 'none',
           }}
         >
           {element.text}
