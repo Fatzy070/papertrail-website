@@ -4,6 +4,7 @@ import {
   Circle,
   Download,
   History,
+  Image as ImageIcon,
   LoaderCircle,
   MousePointer2,
   Redo2,
@@ -12,6 +13,10 @@ import {
   Undo2,
   ZoomIn,
   ZoomOut,
+  Pencil,
+  FileSignature,
+  StickyNote,
+  TextCursorInput
 } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
 import { ThemeToggle } from '../ui/ThemeToggle'
@@ -21,6 +26,7 @@ interface Props {
   onDownload: () => void
   onSave: () => void
   onVersions: () => void
+  onImageClick: () => void
   saving: boolean
   saveError: boolean
 }
@@ -30,6 +36,7 @@ export function EditorToolbar({
   onDownload,
   onSave,
   onVersions,
+  onImageClick,
   saving,
   saveError,
 }: Props) {
@@ -113,7 +120,7 @@ export function EditorToolbar({
           </button>
         </div>
         <div className="tool-group">
-          {(['select', 'text'] as const).map((tool) => (
+          {(['pointer', 'edit-text', 'text', 'image', 'draw', 'sign', 'note'] as const).map((tool) => (
             <button
               key={tool}
               className={
@@ -122,17 +129,65 @@ export function EditorToolbar({
                   : 'toolbar-button'
               }
               aria-pressed={state.activeTool === tool}
-              onClick={() => state.setActiveTool(tool)}
+              onClick={() => {
+                if (tool === 'image') {
+                  onImageClick()
+                } else {
+                  state.setActiveTool(tool)
+                }
+              }}
+              title={
+                tool === 'pointer' ? 'Pointer' :
+                tool === 'edit-text' ? 'Edit Text' :
+                tool === 'text' ? 'Add text' :
+                tool === 'image' ? 'Add image' :
+                tool === 'draw' ? 'Draw' :
+                tool === 'sign' ? 'Signature' :
+                'Note'
+              }
             >
-              {tool === 'select' ? (
-                <MousePointer2 size={16} />
-              ) : (
-                <Type size={16} />
-              )}
-              {tool === 'select' ? 'Select' : 'Add text'}
+              {tool === 'pointer' ? <MousePointer2 size={16} /> :
+               tool === 'edit-text' ? <TextCursorInput size={16} /> :
+               tool === 'text' ? <Type size={16} /> :
+               tool === 'image' ? <ImageIcon size={16} /> :
+               tool === 'draw' ? <Pencil size={16} /> :
+               tool === 'sign' ? <FileSignature size={16} /> :
+               <StickyNote size={16} />}
+              {tool === 'pointer' ? 'Pointer' : 
+               tool === 'edit-text' ? 'Edit' : 
+               tool === 'text' ? 'Text' : 
+               tool === 'image' ? 'Image' :
+               tool === 'draw' ? 'Draw' :
+               tool === 'sign' ? 'Sign' :
+               'Note'}
             </button>
           ))}
         </div>
+        
+        {state.activeTool === 'draw' && (
+          <div className="tool-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+              Color:
+              <input 
+                type="color" 
+                value={state.drawSettings.color} 
+                onChange={(e) => state.setDrawSettings({ color: e.target.value })}
+                style={{ width: '24px', height: '24px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+              Width:
+              <input 
+                type="range" 
+                min="1" max="20" 
+                value={state.drawSettings.strokeWidth}
+                onChange={(e) => state.setDrawSettings({ strokeWidth: Number(e.target.value) })}
+                style={{ width: '80px' }}
+              />
+            </label>
+          </div>
+        )}
+
         <span className="tool-tip">Select text to edit · drag to move</span>
         <div className="zoom-control">
           <button

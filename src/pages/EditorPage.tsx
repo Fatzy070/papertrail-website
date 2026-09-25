@@ -23,13 +23,69 @@ export function EditorPage() {
   const [history, setHistory] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const document = useEditorStore((s) => s.document)
-  const elements = useEditorStore((s) => s.textElements)
+  const elements = useEditorStore((s) => s.elements)
   const dirty = useEditorStore((s) => s.dirty)
   const markSaved = useEditorStore((s) => s.markSaved)
   const reset = useEditorStore((s) => s.reset)
   const show = useToastStore((s) => s.show)
   const [activePage, setActivePage] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  function handleAddImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      show('Unsupported image format. Please use PNG, JPEG, or WebP.', 'error')
+      e.target.value = ''
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      show('Image is too large (max 10MB)', 'error')
+      e.target.value = ''
+      return
+    }
+
+    const src = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      const activePageInfo = document?.pages[activePage]
+      if (!activePageInfo) return
+      
+      const maxWidth = activePageInfo.width * 0.5
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1
+      
+      const width = img.width * scale
+      const height = img.height * scale
+      
+      const x = (activePageInfo.width - width) / 2
+      const y = (activePageInfo.height - height) / 2
+
+      const id = crypto.randomUUID()
+      useEditorStore.getState().addElement({
+        type: 'image',
+        id,
+        pageId: activePageInfo.id,
+        src,
+        mimeType: file.type,
+        source: 'user',
+        x,
+        y,
+        width,
+        height,
+        rotation: 0
+      })
+      useEditorStore.getState().selectElement(id)
+      useEditorStore.getState().setActiveTool('pointer')
+    }
+    img.onerror = () => {
+      show('Failed to decode image', 'error')
+      URL.revokeObjectURL(src)
+    }
+    img.src = src
+    e.target.value = ''
+  }
   const loadRemote = useCallback(async () => {
     if (!metadata.data) return
     const url = documentsApi.contentUrl(documentId)
@@ -55,6 +111,22 @@ export function EditorPage() {
     return () => removeEventListener('beforeunload', warn)
   }, [dirty])
   useEffect(() => () => reset(), [reset])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (e.target instanceof HTMLElement) {
+          const tag = e.target.tagName.toLowerCase()
+          if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) {
+            return
+          }
+        }
+        useEditorStore.getState().deleteSelected()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
   async function generate() {
     if (!document) throw new Error('No PDF is open.')
     return exportPdf(document, elements)
@@ -114,8 +186,16 @@ export function EditorPage() {
         onDownload={() => void download()}
         onSave={() => void save()}
         onVersions={() => setHistory(true)}
+        onImageClick={() => imageInputRef.current?.click()}
         saving={saveMutation.isPending}
         saveError={saveError}
+      />
+      <input 
+        type="file" 
+        accept="image/png,image/jpeg,image/webp" 
+        style={{ display: 'none' }} 
+        ref={imageInputRef}
+        onChange={handleAddImage}
       />
       <div className="editor-body">
         <PageSidebar
@@ -142,14 +222,14 @@ export function EditorPage() {
             )}
             {document &&
               pdf &&
-              document.pages.map((page) => (
+              document.pages.map((page, index) => (
                 <div
-                  key={page.index}
-                  id={`pdf-page-${page.index}`}
-                  onClick={() => setActivePage(page.index)}
+                  key={page.id}
+                  id={`pdf-page-${index}`}
+                  onClick={() => setActivePage(index)}
                 >
                   <p className="pdf-page-caption">
-                    PAGE {page.index + 1} OF {document.pages.length}
+                    PAGE {index + 1} OF {document.pages.length}
                   </p>
                   <PdfPage pdf={pdf} page={page} />
                 </div>

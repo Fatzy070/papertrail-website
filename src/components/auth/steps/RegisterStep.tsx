@@ -104,7 +104,7 @@ export function RegisterStep({
       
       <p className="auth-switch">
         Already have an account?{' '}
-        <button type="button" onClick={onSwitchMode} style={{ background: 'none', border: 'none', padding: 0, fontSize: '1rem', fontWeight: 500, color: 'var(--brand-color)', cursor: 'pointer', textDecoration: 'underline' }}>
+        <button type="button" onClick={onSwitchMode} className="auth-link-button">
           Sign in
         </button>
       </p>

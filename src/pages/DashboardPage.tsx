@@ -4,29 +4,15 @@ import {
   Download,
   FileText,
   FolderOpen,
-  Home,
-  Clock3,
-  Star,
-  Combine,
-  Scissors,
-  Minimize2,
-  RefreshCw,
-  CircleHelp,
-  LogOut,
   MoreHorizontal,
   Search,
-  ChevronRight,
   Pencil,
   Trash2,
   UploadCloud,
-  Settings,
 } from 'lucide-react'
-import { Brand } from '../components/ui/Brand'
-import { UserAvatar } from '../components/ui/UserAvatar'
 import { Dialog } from '../components/ui/Dialog'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { documentsApi, type DocumentMetadata } from '../api/documents.api'
-import { useCurrentUser, useLogout } from '../hooks/use-auth'
 import {
   useDeleteDocument,
   useDocuments,
@@ -34,8 +20,6 @@ import {
   useUploadDocument,
 } from '../hooks/use-documents'
 import { useToastStore } from '../store/toast-store'
-import { ThemeToggle } from '../components/ui/ThemeToggle'
-import { WorkspaceSidebar } from '../components/dashboard/WorkspaceSidebar'
 
 const maxBytes = 50 * 1024 * 1024
 const formatSize = (bytes: number) =>
@@ -44,8 +28,6 @@ const formatSize = (bytes: number) =>
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
 export function DashboardPage() {
-  const user = useCurrentUser()
-  const logout = useLogout()
   const documents = useDocuments()
   const upload = useUploadDocument()
   const rename = useRenameDocument()
@@ -113,29 +95,8 @@ export function DashboardPage() {
       document.name.toLowerCase().includes(search.toLowerCase()),
     ) ?? []
   return (
-    <main className="workspace-layout">
-      <WorkspaceSidebar />
-      
-      <section className="workspace-main">
-        <div className="workspace-breadcrumb">
-          <FolderOpen size={14} /> Workspace <ChevronRight size={12} />
-          <span>Documents</span>
-          <ThemeToggle />
-          <button
-            className="icon-button mobile-account"
-            aria-label="Sign out"
-            onClick={() =>
-              void logout
-                .mutateAsync()
-                .then(() => navigate('/login'))
-                .catch(() => show('Could not sign out.', 'error'))
-            }
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-        <div className="workspace-content">
-
+    <>
+      <div className="workspace-content">
           <header className="workspace-heading">
             <div>
               <h1>My documents</h1>
@@ -294,7 +255,7 @@ export function DashboardPage() {
             </table>
           )}
         </div>
-      </section>
+
       {renaming && (
         <Dialog
           title="Rename document"
@@ -357,6 +318,6 @@ export function DashboardPage() {
           </div>
         </Dialog>
       )}
-    </main>
+    </>
   )
 }

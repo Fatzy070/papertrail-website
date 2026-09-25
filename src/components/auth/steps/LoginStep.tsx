@@ -70,9 +70,9 @@ export function LoginStep({
         </label>
         
         <label className="field-label">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div className="flex-between">
             <span>Password</span>
-            <button type="button" onClick={onForgotPassword} style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.875rem', fontWeight: 500, color: 'var(--brand-color)', cursor: 'pointer' }}>
+            <button type="button" onClick={onForgotPassword} className="auth-link-button">
               Forgot password?
             </button>
           </div>
@@ -119,7 +119,7 @@ export function LoginStep({
       
       <p className="auth-switch">
         New to Papertrail?{' '}
-        <button type="button" onClick={onSwitchMode} style={{ background: 'none', border: 'none', padding: 0, fontSize: '1rem', fontWeight: 500, color: 'var(--brand-color)', cursor: 'pointer', textDecoration: 'underline' }}>
+        <button type="button" onClick={onSwitchMode} className="auth-link-button">
           Create an account
         </button>
       </p>
