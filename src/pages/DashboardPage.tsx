@@ -4,6 +4,14 @@ import {
   Download,
   FileText,
   FolderOpen,
+  Home,
+  Clock3,
+  Star,
+  Combine,
+  Scissors,
+  Minimize2,
+  RefreshCw,
+  CircleHelp,
   LogOut,
   MoreHorizontal,
   Search,
@@ -11,10 +19,12 @@ import {
   Pencil,
   Trash2,
   UploadCloud,
+  Settings,
 } from 'lucide-react'
 import { Brand } from '../components/ui/Brand'
+import { UserAvatar } from '../components/ui/UserAvatar'
 import { Dialog } from '../components/ui/Dialog'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { documentsApi, type DocumentMetadata } from '../api/documents.api'
 import { useCurrentUser, useLogout } from '../hooks/use-auth'
 import {
@@ -24,6 +34,8 @@ import {
   useUploadDocument,
 } from '../hooks/use-documents'
 import { useToastStore } from '../store/toast-store'
+import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { WorkspaceSidebar } from '../components/dashboard/WorkspaceSidebar'
 
 const maxBytes = 50 * 1024 * 1024
 const formatSize = (bytes: number) =>
@@ -102,42 +114,13 @@ export function DashboardPage() {
     ) ?? []
   return (
     <main className="workspace-layout">
-      <aside className="workspace-sidebar">
-        <Brand />
-        <p className="sidebar-section-label">Workspace</p>
-        <div className="workspace-nav">
-          <FolderOpen size={17} />
-          <span style={{ marginLeft: 0 }}>Documents</span>
-          <span>{documents.data?.length ?? 0}</span>
-        </div>
-        <div className="account-card">
-          <div className="avatar">
-            {user.data?.name.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="account-copy">
-            <strong>{user.data?.name}</strong>
-            <span>{user.data?.email}</span>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="Sign out"
-            title="Sign out"
-            disabled={logout.isPending}
-            onClick={() =>
-              void logout
-                .mutateAsync()
-                .then(() => navigate('/login'))
-                .catch(() => show('Could not sign out. Try again.', 'error'))
-            }
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </aside>
+      <WorkspaceSidebar />
+      
       <section className="workspace-main">
         <div className="workspace-breadcrumb">
           <FolderOpen size={14} /> Workspace <ChevronRight size={12} />
           <span>Documents</span>
+          <ThemeToggle />
           <button
             className="icon-button mobile-account"
             aria-label="Sign out"

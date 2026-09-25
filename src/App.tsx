@@ -5,6 +5,12 @@ import { AuthPage } from './pages/AuthPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { EditorPage } from './pages/EditorPage'
 import { ProtectedRoute, PublicOnlyRoute } from './routes/RouteGuards'
+import { ThemeProvider } from './hooks/use-theme'
+import { SettingsPage } from './pages/SettingsPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { AuthShell } from './components/auth/AuthShell'
+import { SupportPage } from './pages/SupportPage'
+import { WorkspacePlaceholderPage } from './pages/WorkspacePlaceholderPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
@@ -17,24 +23,35 @@ function RedirectWithParams({ to, step }: { to: string; step: string }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <BrowserRouter>
         <Routes>
           <Route element={<PublicOnlyRoute />}>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/login" element={<RedirectWithParams to="/auth" step="login" />} />
-            <Route path="/register" element={<RedirectWithParams to="/auth" step="register" />} />
-            <Route path="/verify-email" element={<RedirectWithParams to="/auth" step="verify-email" />} />
+            <Route path="/auth" element={<AuthShell />} />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/forgot-password" element={<RedirectWithParams to="/auth" step="forgot-password" />} />
             <Route path="/reset-password" element={<RedirectWithParams to="/auth" step="reset-password" />} />
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/support" element={<SupportPage />} />
             <Route path="/documents/:documentId/edit" element={<EditorPage />} />
+            <Route path="/recent" element={<WorkspacePlaceholderPage />} />
+            <Route path="/starred" element={<WorkspacePlaceholderPage />} />
+            <Route path="/trash" element={<WorkspacePlaceholderPage />} />
+            <Route path="/tools/merge" element={<WorkspacePlaceholderPage />} />
+            <Route path="/tools/split" element={<WorkspacePlaceholderPage />} />
+            <Route path="/tools/compress" element={<WorkspacePlaceholderPage />} />
+            <Route path="/tools/convert" element={<WorkspacePlaceholderPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
         <ToastViewport />
       </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }
