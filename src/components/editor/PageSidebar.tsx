@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { PdfPageInfo } from '../../types/editor'
+
+
 function Thumbnail({
   pdf,
   page,

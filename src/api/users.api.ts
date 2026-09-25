@@ -1,0 +1,2 @@
+import { apiRequest } from './client'
+export const usersApi = { changePassword: (payload: { currentPassword: string; newPassword: string }) => apiRequest<{ success: boolean }>('/users/me/password', { method: 'PATCH', body: JSON.stringify(payload) }), uploadProfileImage: (file: File) => { const form = new FormData(); form.append('file', file); return apiRequest('/users/me/profile-image', { method: 'PUT', body: form }) } }

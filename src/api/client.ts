@@ -25,7 +25,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       let payload: { message?: string | string[]; error?: string } | null = null;
       try {
         payload = await response.json();
-      } catch (e) {
+      } catch {
         // Fallback if not JSON
       }
       

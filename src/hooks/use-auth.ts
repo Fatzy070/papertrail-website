@@ -12,6 +12,11 @@ export function useLogin() {
   return useMutation({ mutationFn: authApi.login, onSuccess: (user) => client.setQueryData(authKeys.current, user) })
 }
 
+export function useGoogleLogin() {
+  const client = useQueryClient()
+  return useMutation({ mutationFn: authApi.google, onSuccess: (user) => client.setQueryData(authKeys.current, user) })
+}
+
 export function useRegister() {
   return useMutation({ mutationFn: authApi.register })
 }

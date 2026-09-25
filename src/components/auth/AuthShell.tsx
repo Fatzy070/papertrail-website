@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Brand } from '../ui/Brand'
 import { LoginStep } from './steps/LoginStep'
@@ -7,6 +7,7 @@ import { RegisterStep } from './steps/RegisterStep'
 import { VerifyEmailStep } from './steps/VerifyEmailStep'
 import { ForgotPasswordStep } from './steps/ForgotPasswordStep'
 import { ResetPasswordStep } from './steps/ResetPasswordStep'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 export type AuthStepType = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password'
 
@@ -17,6 +18,7 @@ const variants = {
 }
 
 export function AuthShell() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlEmail = searchParams.get('email')
   const [email, setEmailState] = useState(urlEmail || '')
@@ -30,12 +32,12 @@ export function AuthShell() {
     if (saved && ['login', 'register', 'verify-email', 'forgot-password'].includes(saved)) {
       return saved
     }
-    return 'login'
+    return 'forgot-password'
   })
 
   const setStep = (newStep: AuthStepType) => {
     setStepState(newStep)
-    if (['login', 'register', 'forgot-password', 'verify-email'].includes(newStep)) {
+    if (['forgot-password', 'reset-password'].includes(newStep)) {
       localStorage.setItem('pdf-editor-auth-flow', newStep)
     } else {
       localStorage.removeItem('pdf-editor-auth-flow')
@@ -68,6 +70,7 @@ export function AuthShell() {
           <Brand />
         </Link>
         <span>Your document workspace</span>
+        <ThemeToggle />
       </header>
       <section className="auth-card" style={{ overflow: 'hidden' }}>
         <AnimatePresence mode="wait">
@@ -101,12 +104,12 @@ export function AuthShell() {
             {step === 'verify-email' && (
               <VerifyEmailStep
                 email={email}
-                onBackToLogin={() => setStep('login')}
+                onBackToLogin={() => navigate('/login')}
               />
             )}
             {step === 'forgot-password' && (
               <ForgotPasswordStep
-                onBackToLogin={() => setStep('login')}
+                onBackToLogin={() => navigate('/login')}
                 onCodeSent={(emailAddress) => {
                   handleEmailChange(emailAddress)
                   setStep('reset-password')
@@ -116,7 +119,7 @@ export function AuthShell() {
             {step === 'reset-password' && (
               <ResetPasswordStep
                 email={email}
-                onBackToLogin={() => setStep('login')}
+                onBackToLogin={() => navigate('/login')}
               />
             )}
           </motion.div>

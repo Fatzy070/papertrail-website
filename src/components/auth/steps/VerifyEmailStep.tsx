@@ -4,6 +4,7 @@ import { useResendVerification, useVerifyEmail, useLogout } from '../../../hooks
 import { useQueryClient } from '@tanstack/react-query'
 import { authKeys } from '../../../hooks/use-auth'
 import { useNavigate } from 'react-router-dom'
+import { CodeBoxes } from '../CodeBoxes'
 
 export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBackToLogin: () => void }) {
   const [code, setCode] = useState('')
@@ -70,16 +71,7 @@ export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBac
       <form onSubmit={(e) => void submit(e)} className="auth-form">
         <label className="field-label">
           Verification code
-          <input
-            type="text"
-            className="text-input"
-            placeholder="123456"
-            required
-            maxLength={6}
-            pattern="\d{6}"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
+          <CodeBoxes value={code} onChange={setCode} disabled={verify.isPending} />
         </label>
 
         {verify.error && (

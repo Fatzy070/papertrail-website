@@ -14,6 +14,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 interface Props {
   onBack: () => void
@@ -64,6 +65,7 @@ export function EditorToolbar({
           </span>
         </div>
         <div className="topbar-actions">
+          <ThemeToggle />
           <button
             className="toolbar-button"
             onClick={onVersions}
