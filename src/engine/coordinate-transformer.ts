@@ -12,7 +12,7 @@ export interface ViewportRect {
 export function viewportRectToPageRect(
   page: PDFPageProxy,
   item: { transform: number[]; width: number; height: number },
-): TextElement['originalBounds'] & { rotation: number } {
+): TextElement['originalBounds'] & { rotation: number; baselineY: number } {
   const viewport = page.getViewport({ scale: 1 })
   const tx = item.transform
   const x = tx[4] ?? 0
@@ -31,6 +31,7 @@ export function viewportRectToPageRect(
     width: Math.max(item.width, 4),
     height: fontHeight,
     rotation: Math.atan2(tx[1] ?? 0, tx[0] ?? 1) * (180 / Math.PI),
+    baselineY: viewport.height - baseline,
   }
 }
 

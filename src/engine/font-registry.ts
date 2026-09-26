@@ -133,7 +133,8 @@ export const FONT_ORDER: FontId[] = [
  * Fuzzy-matches so that existing elements and PDF-extracted font names still resolve.
  */
 export function resolveFontId(fontFamily: string): FontId {
-  const f = fontFamily.toLowerCase().replace(/['"]/g, '')
+  const normalized = normalizePdfFontName(fontFamily)
+  const f = normalized.toLowerCase().replace(/['"]/g, '')
   if (f.includes('inter')) return 'inter'
   if (f.includes('roboto')) return 'roboto'
   if (f.includes('open sans') || f.includes('opensans')) return 'openSans'
@@ -143,6 +144,22 @@ export function resolveFontId(fontFamily: string): FontId {
   if (f.includes('courier') || f.includes('mono')) return 'courier'
   // Default: Helvetica for anything else (includes extracted PDF fonts)
   return 'helvetica'
+}
+
+/**
+ * Normalizes a raw PDF font name (e.g. ABCDEF+HelveticaNeue-Bold) 
+ * to a standard font family name (e.g. Helvetica).
+ */
+export function normalizePdfFontName(rawName: string): string {
+  let name = rawName
+  // Strip 6-character subset prefix + '+' (e.g., 'ABCDEF+')
+  if (/^[A-Z]{6}\+/.test(name)) {
+    name = name.substring(7)
+  }
+  // Strip common suffixes
+  name = name.split('-')[0]
+  name = name.split(',')[0]
+  return name
 }
 
 /**
