@@ -7,9 +7,12 @@ import { ImageOverlay } from './ImageOverlay'
 import { DrawingOverlay } from './DrawingOverlay'
 import { SignatureModal } from './SignatureModal'
 import { NoteOverlay } from './NoteOverlay'
+import { WatermarkOverlay } from './WatermarkOverlay'
 import { useEditorStore } from '../../store/editor-store'
+import { pdfCache } from '../../engine/pdf-cache'
 import { getStroke } from 'perfect-freehand'
-import { measureTextElement } from '../../engine/text-measurement'
+import type { FontId } from '../../engine/font-registry'
+
 
 function getSvgPathFromStroke(stroke: number[][]) {
   if (!stroke.length) return ''
@@ -49,9 +52,18 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
 
   useEffect(() => {
     const controller = new AbortController()
+
+    let sourceProxy = pdf
+    if (page.kind === 'imported') {
+      const cached = pdfCache.get(page.sourceDocumentId)
+      if (cached) {
+        sourceProxy = cached.proxy
+      }
+    }
+
     if (canvasRef.current)
       void renderPage(
-        pdf,
+        sourceProxy,
         page,
         canvasRef.current,
         zoom,
@@ -155,10 +167,8 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     }
 
     const id = crypto.randomUUID()
-    const textStr = 'New text'
     const fontSize = 14
-    const fontFamily = 'Helvetica'
-    const width = measureTextElement(textStr, fontSize, fontFamily, false, false)
+    const defaultFontId: FontId = 'inter'
 
     addElement({
       type: 'text',
@@ -166,16 +176,18 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
       pageId: page.id,
       source: 'user',
       originalText: '',
-      text: textStr,
+      text: '', // Empty — placeholder shown in TextOverlay
       x: pt.x,
       y: pt.y,
-      width,
+      width: 120, // starting width; auto-grows as user types
       height: fontSize * 1.2,
       fontSize,
-      fontFamily,
+      fontFamily: 'Inter',
+      fontId: defaultFontId,
       color: '#1f2937',
       rotation: 0,
-      edited: true,
+      edited: false,
+      manualWidth: false,
     })
     selectElement(id)
     setActiveTool('pointer')
@@ -205,26 +217,8 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
       onPointerCancel={handlePointerUp}
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
+      <WatermarkOverlay pageId={page.id} zoom={zoom} />
       <div className="absolute inset-0">
-        {elements
-          .filter((element): element is import('../../types/editor').TextElement => element.type === 'text' && element.edited === true && element.source === 'pdf')
-          .map((element) => {
-            const bounds = element.originalBounds ?? element
-            return (
-              <div
-                key={`bg-${element.id}`}
-                style={{
-                  position: 'absolute',
-                  pointerEvents: 'none',
-                  background: 'white',
-                  left: bounds.x * zoom,
-                  top: bounds.y * zoom,
-                  width: bounds.width * zoom,
-                  height: (bounds.height + 2) * zoom,
-                }}
-              />
-            )
-          })}
         {elements.map((element) => {
           if (element.type === 'source-image') {
             if (element.deleted) return null;

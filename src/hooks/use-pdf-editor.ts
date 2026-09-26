@@ -20,6 +20,7 @@ export function usePdfEditor() {
     setError(null)
     setLoading(true)
     try {
+      console.log('[DEBUG] openBytes CALLED!', { name, source })
       const loadedPdf = await loadPdfDocument(bytes)
       setPdf(loadedPdf)
       const pages = []

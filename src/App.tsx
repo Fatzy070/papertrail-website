@@ -22,12 +22,15 @@ function RedirectWithParams({ to, step }: { to: string; step: string }) {
   return <Navigate to={`${to}?${searchParams.toString()}`} replace />
 }
 
+import { GoogleOAuthProvider } from '@react-oauth/google'
+
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
           <Route element={<PublicOnlyRoute />}>
             <Route path="/auth" element={<AuthShell />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
@@ -57,7 +60,8 @@ function App() {
         <ToastViewport />
       </BrowserRouter>
       </ThemeProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   )
 }
 

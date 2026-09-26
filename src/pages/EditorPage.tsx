@@ -9,7 +9,10 @@ import { apiFetchRaw } from '../api/client'
 import { EditorToolbar } from '../components/editor/EditorToolbar'
 import { PdfPage } from '../components/editor/PdfPage'
 import { VersionHistory } from '../components/editor/VersionHistory'
+import { WatermarkModal } from '../components/editor/WatermarkModal'
 import { exportPdf } from '../engine/pdf-exporter'
+import { loadPdfDocument } from '../engine/pdf-loader'
+import { pdfCache } from '../engine/pdf-cache'
 import { useDocument, useSaveDocument, useUpdateDocument } from '../hooks/use-documents'
 import { usePdfEditor } from '../hooks/use-pdf-editor'
 import { useEditorStore } from '../store/editor-store'
@@ -34,9 +37,54 @@ export function EditorPage() {
   const show = useToastStore((s) => s.show)
   const [activePage, setActivePage] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  const [showWatermarkModal, setShowWatermarkModal] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
+  const importTargetIndexRef = useRef<number>(0)
 
   useEditorKeyboardShortcuts()
+
+  async function handleImportPdf(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== 'application/pdf') {
+      show('Unsupported format. Please use PDF.', 'error')
+      e.target.value = ''
+      return
+    }
+
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const proxy = await loadPdfDocument(arrayBuffer)
+      
+      const sourceDocumentId = crypto.randomUUID()
+      pdfCache.set(sourceDocumentId, { bytes: arrayBuffer, proxy })
+      
+      const newPages = []
+      for (let i = 0; i < proxy.numPages; i++) {
+        const page = await proxy.getPage(i + 1)
+        const viewport = page.getViewport({ scale: 1 })
+        newPages.push({
+          id: crypto.randomUUID(),
+          kind: 'imported' as const,
+          sourceDocumentId,
+          sourcePageIndex: i,
+          width: viewport.width,
+          height: viewport.height,
+          rotation: page.rotate
+        })
+      }
+      
+      useEditorStore.getState().addPages(importTargetIndexRef.current, newPages)
+      show(`Imported ${proxy.numPages} page(s)`, 'success')
+    } catch (err) {
+      show('Failed to import PDF', 'error')
+      console.error(err)
+    } finally {
+      e.target.value = ''
+    }
+  }
 
   function handleAddImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -97,7 +145,7 @@ export function EditorPage() {
 
   useEffect(() => {
     if (!metadata.data) return
-    if (pdf && document?.name === metadata.data.name) return
+    if (pdf && document?.name === metadata.data.name) { console.log("Init skipped because name matched"); return; }
 
     const controller = new AbortController()
 
@@ -196,7 +244,9 @@ export function EditorPage() {
           type: 'application/pdf',
         }),
       })
+      console.log('[DEBUG] Calling markSaved')
       markSaved(bytes.buffer as ArrayBuffer)
+      console.log('[DEBUG] markSaved completed')
       show('Document saved.', 'success')
     } catch (e) {
       setSaveError(true)
@@ -227,6 +277,7 @@ export function EditorPage() {
         onSave={() => void save()}
         onVersions={() => setHistory(true)}
         onImageClick={() => imageInputRef.current?.click()}
+        onWatermarkClick={() => setShowWatermarkModal(true)}
         saving={saveMutation.isPending}
         saveError={saveError}
       />
@@ -236,6 +287,13 @@ export function EditorPage() {
         style={{ display: 'none' }} 
         ref={imageInputRef}
         onChange={handleAddImage}
+      />
+      <input 
+        type="file" 
+        accept="application/pdf" 
+        style={{ display: 'none' }} 
+        ref={pdfInputRef}
+        onChange={handleImportPdf}
       />
       <div className="editor-body">
         <PageSidebar
@@ -247,6 +305,10 @@ export function EditorPage() {
             window.document
               .getElementById(`pdf-page-${index}`)
               ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+          onImportFromFile={(index) => {
+            importTargetIndexRef.current = index
+            pdfInputRef.current?.click()
           }}
         />
         <section className="pdf-workspace" aria-label="Document canvas">
@@ -313,6 +375,20 @@ export function EditorPage() {
             </button>
           </div>
         </Dialog>
+      )}
+      {showWatermarkModal && (
+        <WatermarkModal
+          initialConfig={useEditorStore.getState().watermark}
+          onClose={() => setShowWatermarkModal(false)}
+          onSave={(config) => {
+            useEditorStore.getState().setWatermark(config)
+            setShowWatermarkModal(false)
+          }}
+          onRemove={() => {
+            useEditorStore.getState().setWatermark(undefined)
+            setShowWatermarkModal(false)
+          }}
+        />
       )}
     </main>
   )

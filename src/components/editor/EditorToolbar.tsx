@@ -16,7 +16,8 @@ import {
   Pencil,
   FileSignature,
   StickyNote,
-  TextCursorInput
+  TextCursorInput,
+  Stamp
 } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
 import { ThemeToggle } from '../ui/ThemeToggle'
@@ -27,6 +28,7 @@ interface Props {
   onSave: () => void
   onVersions: () => void
   onImageClick: () => void
+  onWatermarkClick: () => void
   saving: boolean
   saveError: boolean
 }
@@ -37,6 +39,7 @@ export function EditorToolbar({
   onSave,
   onVersions,
   onImageClick,
+  onWatermarkClick,
   saving,
   saveError,
 }: Props) {
@@ -162,6 +165,14 @@ export function EditorToolbar({
                'Note'}
             </button>
           ))}
+          <button
+            className="toolbar-button"
+            onClick={onWatermarkClick}
+            title="Watermark"
+          >
+            <Stamp size={16} />
+            Watermark
+          </button>
         </div>
         
         {state.activeTool === 'draw' && (
