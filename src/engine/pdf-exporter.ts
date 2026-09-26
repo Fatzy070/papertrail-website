@@ -14,6 +14,7 @@ import {
   type FontId,
   type FontVariant,
 } from './font-registry'
+import { applyMuPdfRedactions, type PendingRedaction } from './mupdf/mupdf-redaction'
 
 /** Resolve a variant name from bold/italic flags */
 function variantFromFlags(bold?: boolean, italic?: boolean): FontVariant {
@@ -80,7 +81,38 @@ async function getOrEmbedFont(
 
 
 export async function exportPdf(documentState: PdfDocumentState, allElements: EditorElement[]) {
-  const originalPdf = await PDFDocument.load(documentState.bytes)
+  // Extract pending redactions
+  const pendingRedactions: PendingRedaction[] = []
+  const redactedElementIds = new Set<string>()
+
+  for (const el of allElements) {
+    if (el.type === 'text' && el.source === 'pdf' && (el.deleted || el.edited)) {
+      const pageInfo = documentState.pages.find(p => p.id === el.pageId)
+      if (pageInfo && pageInfo.kind === 'source') {
+        const bounds = el.originalBounds ?? el
+        const PADDING = 2 // 2pt padding to ensure we catch edges of glyphs (e.g. slanted italics)
+        pendingRedactions.push({
+          id: el.id,
+          pageId: el.pageId,
+          sourcePageIndex: pageInfo.sourcePageIndex,
+          rect: {
+            x: bounds.x - PADDING,
+            y: bounds.y - PADDING,
+            width: bounds.width + PADDING * 2,
+            height: bounds.height + PADDING * 2
+          }
+        })
+        redactedElementIds.add(el.id)
+      }
+    }
+  }
+
+  // Generate mutation base
+  const mutationBase = pendingRedactions.length > 0
+    ? await applyMuPdfRedactions(documentState.bytes, pendingRedactions)
+    : documentState.bytes
+
+  const originalPdf = await PDFDocument.load(mutationBase)
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
 
@@ -141,25 +173,13 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
     }
 
     if (element.type === 'text') {
+      if (element.deleted) continue;
+      
       if (element.source === 'pdf' && !element.edited) {
         // Native text is already in the PDF. Only draw it if we added a link or modified it.
         if (!element.link) continue
       }
       
-      const original = element.originalBounds ?? element
-      const coverY = pageHeight - original.y - original.height
-      
-      if (element.edited && element.source !== 'user') {
-        page.drawRectangle({
-          x: original.x,
-          y: coverY,
-          width: original.width,
-          height: original.height + 2,
-          color: rgb(1, 1, 1),
-          opacity: 0.98,
-        })
-      }
-
       if (element.text.trim() && (element.source === 'user' || element.edited)) {
         const fontId = element.fontId ?? resolveFontId(element.fontFamily || 'Helvetica')
         const variant = variantFromFlags(element.bold, element.italic)
