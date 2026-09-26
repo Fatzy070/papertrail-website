@@ -17,6 +17,7 @@
     "@tanstack/react-query": "^5.103.2",
     "framer-motion": "^13.4.3",
     "lucide-react": "^1.47.0",
+    "mupdf": "^1.28.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
     "perfect-freehand": "^1.2.3",

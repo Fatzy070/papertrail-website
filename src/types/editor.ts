@@ -57,6 +57,7 @@ export interface TextElement {
   link?: {
     url: string
   }
+  deleted?: boolean
 }
 
 export interface ImageElement {

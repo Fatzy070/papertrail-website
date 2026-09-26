@@ -267,6 +267,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
             )
           }
           if (element.type === 'text') {
+            if (element.deleted) return null;
             return (
               <TextOverlay
                 key={element.id}

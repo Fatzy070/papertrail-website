@@ -333,6 +333,8 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         <span
           style={{
             display: 'block',
+            width: '100%',
+            height: '100%',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
             ...textStyle,

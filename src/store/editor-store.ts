@@ -110,8 +110,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       
       const elements = state.elements.map(el => {
         if (el.id === state.selectedElementId && !el.locked) {
-           if (el.type === 'text') {
-             return { ...el, text: '', edited: true }
+           if (el.type === 'text' && el.source === 'pdf') {
+             return { ...el, deleted: true }
            }
            if (el.type === 'source-image') {
              return { ...el, deleted: true }
@@ -121,6 +121,9 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       }).filter(el => {
          if (el.id === state.selectedElementId && !el.locked) {
             if (el.type !== 'text' && el.type !== 'source-image') {
+              return false
+            }
+            if (el.type === 'text' && el.source !== 'pdf') {
               return false
             }
          }
