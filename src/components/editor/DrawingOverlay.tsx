@@ -104,7 +104,7 @@ export function DrawingOverlay({
           fill={element.color} 
           stroke="transparent" 
           strokeWidth={15} 
-          style={{ pointerEvents: element.locked || activeTool === 'edit-text' ? 'none' : 'all' }}
+          style={{ pointerEvents: element.locked || activeTool !== 'pointer' ? 'none' : 'all' }}
         />
       </svg>
       {/* Selected Indicator */}

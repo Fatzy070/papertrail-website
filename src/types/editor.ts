@@ -102,7 +102,19 @@ export interface NoteElement {
   locked?: boolean
 }
 
-export type EditorElement = TextElement | ImageElement | DrawingElement | SignatureElement | NoteElement
+export interface SourceImageElement {
+  type: 'source-image'
+  id: string
+  pageId: string
+  x: number
+  y: number
+  width: number
+  height: number
+  deleted?: boolean
+  locked?: boolean
+}
+
+export type EditorElement = TextElement | ImageElement | DrawingElement | SignatureElement | NoteElement | SourceImageElement
 
 export interface PdfDocumentState {
   name: string

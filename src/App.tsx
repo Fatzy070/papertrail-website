@@ -12,6 +12,7 @@ import { AuthShell } from './components/auth/AuthShell'
 import { SupportPage } from './pages/SupportPage'
 import { WorkspacePlaceholderPage } from './pages/WorkspacePlaceholderPage'
 import { MainLayout } from './layouts/MainLayout'
+import { DocumentsPage } from './pages/DocumentsPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
@@ -40,9 +41,10 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/support" element={<SupportPage />} />
-              <Route path="/recent" element={<WorkspacePlaceholderPage />} />
-              <Route path="/starred" element={<WorkspacePlaceholderPage />} />
-              <Route path="/trash" element={<WorkspacePlaceholderPage />} />
+              <Route path="/documents" element={<DocumentsPage filter="all" />} />
+              <Route path="/recent" element={<DocumentsPage filter="recent" />} />
+              <Route path="/starred" element={<DocumentsPage filter="starred" />} />
+              <Route path="/trash" element={<DocumentsPage filter="trash" />} />
               <Route path="/tools/merge" element={<WorkspacePlaceholderPage />} />
               <Route path="/tools/split" element={<WorkspacePlaceholderPage />} />
               <Route path="/tools/compress" element={<WorkspacePlaceholderPage />} />

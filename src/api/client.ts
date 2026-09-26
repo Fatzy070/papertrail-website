@@ -10,16 +10,20 @@ export class ApiError extends Error {
   }
 }
 
+export async function apiFetchRaw(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${baseUrl}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+      ...init.headers,
+    },
+  });
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
-    const response = await fetch(`${baseUrl}${path}`, {
-      ...init,
-      credentials: 'include',
-      headers: {
-        ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-        ...init.headers,
-      },
-    });
+    const response = await apiFetchRaw(path, init);
 
     if (!response.ok) {
       let payload: { message?: string | string[]; error?: string } | null = null;

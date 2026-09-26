@@ -8,7 +8,7 @@ export function PropertyPanel() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const selected = useEditorStore((s) =>
     s.elements.find((e) => e.id === s.selectedElementId),
-  ) as any // Temporary cast until we break down PropertyPanel per element type
+  ) as import('../../types/editor').EditorElement | undefined
   const document = useEditorStore((s) => s.document)
   const update = useEditorStore((s) => s.updateElement)
   const remove = useEditorStore((s) => s.deleteSelected)
@@ -18,19 +18,31 @@ export function PropertyPanel() {
         <SlidersHorizontal size={15} /> Properties
       </div>
       {selected ? (
-        <div className="panel-body">
-          <div className="section-label">
-            <Type size={14} /> Text selection
+        selected.type === 'source-image' ? (
+          <div className="panel-body">
+            <div className="section-label">Existing PDF image</div>
+            <button className="danger-button subtle" onClick={remove} style={{ marginTop: '8px' }}>
+              <Trash2 size={15} /> Delete
+            </button>
           </div>
-          <label className="field-label">
-            Content
-            <textarea
-              className="text-input"
-              rows={4}
-              value={selected.text}
-              onChange={(e) => update(selected.id, { text: e.target.value })}
-            />
-          </label>
+        ) : (
+        <div className="panel-body">
+          {(selected.type === 'text' || selected.type === 'note') && (
+            <>
+              <div className="section-label">
+                <Type size={14} /> Text selection
+              </div>
+              <label className="field-label">
+                Content
+                <textarea
+                  className="text-input"
+                  rows={4}
+                  value={selected.text}
+                  onChange={(e) => update(selected.id, { text: e.target.value })}
+                />
+              </label>
+            </>
+          )}
           
           {selected.type === 'text' && (
             <div className="property-grid" style={{ marginBottom: '12px' }}>
@@ -226,6 +238,7 @@ export function PropertyPanel() {
             <Trash2 size={15} /> Delete
           </button>
         </div>
+        )
       ) : (
         <div className="panel-body">
           <div className="section-label">Document</div>

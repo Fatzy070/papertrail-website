@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { extractNativeText } from '../engine/text-extractor'
+import { extractNativeImages } from '../engine/image-extractor'
 import { extractAnnotations } from '../engine/annotations/annotation-reader'
 import { isPdfFile, loadPdfDocument } from '../engine/pdf-loader'
 import { getPageInfo } from '../engine/pdf-renderer'
@@ -27,9 +28,15 @@ export function usePdfEditor() {
       }
       const textElements = await extractNativeText(loadedPdf, pages)
       const annotationElements = await extractAnnotations(loadedPdf, pages)
+      const imageElements = []
+      for (let i = 0; i < loadedPdf.numPages; i++) {
+        const page = await loadedPdf.getPage(i + 1)
+        const images = await extractNativeImages(page, pages[i].id)
+        imageElements.push(...images)
+      }
       setDocument(
         { name, bytes, pages, source },
-        [...textElements, ...annotationElements]
+        [...textElements, ...annotationElements, ...imageElements]
       )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to open this PDF.')

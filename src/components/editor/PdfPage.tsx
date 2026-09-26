@@ -9,6 +9,7 @@ import { SignatureModal } from './SignatureModal'
 import { NoteOverlay } from './NoteOverlay'
 import { useEditorStore } from '../../store/editor-store'
 import { getStroke } from 'perfect-freehand'
+import { measureTextElement } from '../../engine/text-measurement'
 
 function getSvgPathFromStroke(stroke: number[][]) {
   if (!stroke.length) return ''
@@ -33,6 +34,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     (element) => element.pageId === page.id,
   )
   const selectElement = useEditorStore((state) => state.selectElement)
+  const selectedElementId = useEditorStore((state) => state.selectedElementId)
   const addElement = useEditorStore((state) => state.addElement)
   const activeTool = useEditorStore((state) => state.activeTool)
   const setActiveTool = useEditorStore((state) => state.setActiveTool)
@@ -54,7 +56,10 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
         canvasRef.current,
         zoom,
         controller.signal,
-      ).catch(() => setRenderError(true))
+      ).catch((e) => {
+        console.error('Render page error:', e)
+        setRenderError(true)
+      })
     return () => controller.abort()
   }, [pdf, page, zoom])
 
@@ -65,7 +70,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     return {
       x: (e.clientX - bounds.left) / zoom,
       y: (e.clientY - bounds.top) / zoom,
-      pressure: 'pressure' in e ? (e as any).pressure : 0.5
+      pressure: 'pressure' in e ? (e.nativeEvent as globalThis.PointerEvent).pressure : 0.5
     }
   }
 
@@ -150,25 +155,30 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     }
 
     const id = crypto.randomUUID()
+    const textStr = 'New text'
+    const fontSize = 14
+    const fontFamily = 'Helvetica'
+    const width = measureTextElement(textStr, fontSize, fontFamily, false, false)
+
     addElement({
-          type: 'text',
+      type: 'text',
       id,
       pageId: page.id,
       source: 'user',
       originalText: '',
-      text: 'New text',
+      text: textStr,
       x: pt.x,
       y: pt.y,
-      width: 120,
-      height: 20,
-      fontSize: 14,
-      fontFamily: 'Helvetica',
+      width,
+      height: fontSize * 1.2,
+      fontSize,
+      fontFamily,
       color: '#1f2937',
       rotation: 0,
       edited: true,
     })
     selectElement(id)
-    setActiveTool('edit-text')
+    setActiveTool('pointer')
   }
 
   // Render current drawing stroke
@@ -180,10 +190,9 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
       style={{
         width: page.width * zoom,
         height: page.height * zoom,
-        cursor: activeTool === 'text' ? 'text' : activeTool === 'edit-text' ? 'text' : activeTool === 'draw' ? 'crosshair' : activeTool === 'note' ? 'crosshair' : undefined,
+        cursor: activeTool === 'text' ? 'text' : activeTool === 'draw' ? 'crosshair' : activeTool === 'note' ? 'crosshair' : undefined,
         touchAction: activeTool === 'draw' ? 'none' : 'auto' // Prevent scrolling while drawing
       }}
-      onDoubleClick={activeTool === 'text' || activeTool === 'note' ? undefined : addAt}
       onClick={(event) => {
         if (activeTool === 'draw') return // Click handled by pointer events
         if ((event.target as HTMLElement).closest('[data-text-element]')) return
@@ -198,8 +207,8 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
       <canvas ref={canvasRef} className="absolute inset-0" />
       <div className="absolute inset-0">
         {elements
-          .filter((element) => element.type === 'text' && (element as any).edited && (element as any).source === 'pdf')
-          .map((element: any) => {
+          .filter((element): element is import('../../types/editor').TextElement => element.type === 'text' && element.edited === true && element.source === 'pdf')
+          .map((element) => {
             const bounds = element.originalBounds ?? element
             return (
               <div
@@ -217,41 +226,68 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
             )
           })}
         {elements
-          .filter((element) => element.type === 'image' || element.type === 'signature')
+          .filter((element): element is import('../../types/editor').SourceImageElement => element.type === 'source-image' && !element.deleted)
+          .map((element) => {
+            const isSelected = selectedElementId === element.id
+            return (
+              <div
+                key={element.id}
+                onClick={(e) => {
+                  if (activeTool === 'pointer') {
+                    e.stopPropagation()
+                    selectElement(element.id)
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  left: element.x * zoom,
+                  top: element.y * zoom,
+                  width: element.width * zoom,
+                  height: element.height * zoom,
+                  border: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
+                  pointerEvents: activeTool === 'pointer' ? 'auto' : 'none',
+                  cursor: isSelected ? 'default' : 'pointer',
+                  zIndex: isSelected ? 10 : 1
+                }}
+              />
+            )
+          })}
+        {elements
+          .filter((element): element is import('../../types/editor').ImageElement | import('../../types/editor').SignatureElement => element.type === 'image' || element.type === 'signature')
           .map((element) => (
           <ImageOverlay
             key={element.id}
-            element={element as any}
+            element={element}
             zoom={zoom}
             onSelect={selectElement}
           />
         ))}
         {elements
-          .filter((element) => element.type === 'drawing')
+          .filter((element): element is import('../../types/editor').DrawingElement => element.type === 'drawing')
           .map((element) => (
           <DrawingOverlay
             key={element.id}
-            element={element as any}
+            element={element}
             zoom={zoom}
             onSelect={selectElement}
           />
         ))}
         {elements
-          .filter((element) => element.type === 'text')
+          .filter((element): element is import('../../types/editor').TextElement => element.type === 'text')
           .map((element) => (
           <TextOverlay
             key={element.id}
-            element={element as any}
+            element={element}
             zoom={zoom}
             onSelect={selectElement}
           />
         ))}
         {elements
-          .filter((element) => element.type === 'note')
+          .filter((element): element is import('../../types/editor').NoteElement => element.type === 'note')
           .map((element) => (
           <NoteOverlay
             key={element.id}
-            element={element as any}
+            element={element}
             zoom={zoom}
             onSelect={selectElement}
           />

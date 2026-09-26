@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent } from 'react'
-import type { ImageElement } from '../../types/editor'
+
 import { useEditorStore } from '../../store/editor-store'
 
 export function ImageOverlay({
@@ -7,7 +7,7 @@ export function ImageOverlay({
   zoom,
   onSelect,
 }: {
-  element: ImageElement
+  element: import('../../types/editor').ImageElement | import('../../types/editor').SignatureElement
   zoom: number
   onSelect: (id: string) => void
 }) {
@@ -175,7 +175,7 @@ export function ImageOverlay({
         cursor: element.locked ? 'default' : selected ? 'move' : 'pointer',
         transform: `rotate(${element.rotation}deg)`,
         transformOrigin: 'center',
-        pointerEvents: activeTool === 'edit-text' ? 'none' : 'auto',
+        pointerEvents: activeTool === 'pointer' ? 'auto' : 'none',
       }}
       onPointerDown={drag}
       onPointerUp={finish}

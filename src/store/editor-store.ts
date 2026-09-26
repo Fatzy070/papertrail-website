@@ -10,6 +10,7 @@ interface EditorStore {
   dirty: boolean
   history: EditorSnapshot[]
   historyIndex: number
+  clipboard: EditorElement[] | null
   
   setDocument: (document: PdfDocumentState, elements: EditorElement[]) => void
   setZoom: (zoom: number) => void
@@ -21,6 +22,8 @@ interface EditorStore {
   
   deleteSelected: () => void
   duplicateSelected: () => void
+  copySelected: () => void
+  paste: () => void
   bringForward: () => void
   sendBackward: () => void
   toggleLock: () => void
@@ -35,6 +38,7 @@ interface EditorStore {
   duplicatePage: (pageIndex: number, newPage: EditorPage) => void
   rotatePage: (pageIndex: number, angle: number) => void
   deletePage: (pageIndex: number) => void
+  reorderPage: (fromIndex: number, toIndex: number) => void
   
   drawSettings: { color: string, strokeWidth: number }
   setDrawSettings: (settings: Partial<{ color: string, strokeWidth: number }>) => void
@@ -65,8 +69,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     zoom: 1,
     dirty: false,
     ...initialState,
-    
     drawSettings: { color: '#ef4444', strokeWidth: 3 },
+    clipboard: null,
     setDrawSettings: (settings) => set((state) => ({ drawSettings: { ...state.drawSettings, ...settings } })),
     
     setDocument: (document, elements) => set({ 
@@ -97,13 +101,20 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       if (!state.selectedElementId) return state
       
       const elements = state.elements.map(el => {
-        if (el.id === state.selectedElementId && !el.locked && el.type === 'text') {
-           return { ...el, text: '', edited: true }
+        if (el.id === state.selectedElementId && !el.locked) {
+           if (el.type === 'text') {
+             return { ...el, text: '', edited: true }
+           }
+           if (el.type === 'source-image') {
+             return { ...el, deleted: true }
+           }
         }
         return el
       }).filter(el => {
-         if (el.id === state.selectedElementId && !el.locked && el.type !== 'text') {
-            return false
+         if (el.id === state.selectedElementId && !el.locked) {
+            if (el.type !== 'text' && el.type !== 'source-image') {
+              return false
+            }
          }
          return true
       })
@@ -132,6 +143,38 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       return { elements, history, historyIndex: history.length - 1, dirty: true, selectedElementId: newElement.id }
     }),
     
+    copySelected: () => set((state) => {
+      if (!state.selectedElementId) return state
+      const selected = state.elements.find(e => e.id === state.selectedElementId)
+      if (!selected) return state
+      return { clipboard: [{ ...selected }] }
+    }),
+
+    paste: () => set((state) => {
+      if (!state.clipboard || state.clipboard.length === 0) return state
+      
+      const newElements = state.clipboard.map(element => ({
+        ...element,
+        id: crypto.randomUUID(),
+        x: element.x + 10,
+        y: element.y + 10,
+        edited: true
+      })) as EditorElement[]
+
+      const elements = [...state.elements, ...newElements]
+      const history = state.history.slice(0, state.historyIndex + 1)
+      history.push({ elements, pages: state.document?.pages ?? [] })
+      return { 
+        elements, 
+        history, 
+        historyIndex: history.length - 1, 
+        dirty: true, 
+        selectedElementId: newElements[0].id,
+        // Update clipboard to allow pasting multiple times with offset
+        clipboard: newElements 
+      }
+    }),
+
     bringForward: () => set((state) => {
       if (!state.selectedElementId) return state
       const index = state.elements.findIndex(e => e.id === state.selectedElementId)
@@ -256,6 +299,15 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       const elements = state.elements.filter(el => el.pageId !== deletedPageId)
         
       commit(elements, pages)
+    },
+
+    reorderPage: (fromIndex, toIndex) => {
+      const state = get()
+      if (!state.document) return
+      const pages = [...state.document.pages]
+      const [movedPage] = pages.splice(fromIndex, 1)
+      pages.splice(toIndex, 0, movedPage)
+      commit(state.elements, pages)
     }
   }
 })
