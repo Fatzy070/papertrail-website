@@ -26,25 +26,25 @@ export function applyLinkAnnotation(page: PDFPage, data: LinkAnnotationData) {
     NM: PDFString.of(`link-${data.id}`)
   })
 
-  let annots = page.node.lookup(PDFName.of('Annots')) as any
+  let annots = page.node.lookup(PDFName.of('Annots')) as import('pdf-lib').PDFArray | undefined
   if (!annots) {
-    annots = doc.context.obj([])
+    annots = doc.context.obj([]) as import('pdf-lib').PDFArray
     page.node.set(PDFName.of('Annots'), annots)
   }
 
   // Remove existing annotation with the same ID if any
-  const annotArray = annots.array || []
-  for (let i = annotArray.length - 1; i >= 0; i--) {
-    const annotRef = annotArray[i]
+  const size = annots.size()
+  for (let i = size - 1; i >= 0; i--) {
+    const annotRef = annots.get(i)
     try {
       const annot = doc.context.lookup(annotRef) as PDFDict
       if (annot && annot.get(PDFName.of('NM'))) {
         const nm = annot.get(PDFName.of('NM')) as PDFString
         if (nm.decodeText() === `link-${data.id}`) {
-          annotArray.splice(i, 1)
+          annots.remove(i)
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }

@@ -67,7 +67,30 @@ export function PageSidebar({
       </div>
       <div className="thumbnail-list">
         {pages.map((page, i) => (
-          <div key={page.id} className="thumbnail-wrapper group relative">
+          <div 
+            key={page.id} 
+            className="thumbnail-wrapper group relative"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'move'
+              e.dataTransfer.setData('text/plain', i.toString())
+              e.currentTarget.style.opacity = '0.4'
+            }}
+            onDragEnd={(e) => {
+              e.currentTarget.style.opacity = '1'
+            }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+              if (!isNaN(fromIndex) && fromIndex !== i) {
+                useEditorStore.getState().reorderPage(fromIndex, i)
+              }
+            }}
+          >
             <button
               className={active === i ? 'thumbnail active' : 'thumbnail'}
               aria-label={`Go to page ${i + 1}`}

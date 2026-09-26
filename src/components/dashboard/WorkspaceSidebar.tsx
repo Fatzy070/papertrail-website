@@ -2,12 +2,12 @@ import { Clock3, CircleHelp, Combine, FolderOpen, Home, LogOut, Minimize2, Refre
 import { Link, useNavigate } from 'react-router-dom'
 import { Brand } from '../ui/Brand'
 import { UserAvatar } from '../ui/UserAvatar'
-import { ThemeToggle } from '../ui/ThemeToggle'
 import { useCurrentUser, useLogout } from '../../hooks/use-auth'
 import { useToastStore } from '../../store/toast-store'
+import { useDocuments } from '../../hooks/use-documents'
 
 const WORKSPACE_LINKS = [
-  { to: '/dashboard', icon: FolderOpen, label: 'My Documents', showCount: true },
+  { to: '/documents', icon: FolderOpen, label: 'My Documents', showCount: true },
   { to: '/recent', icon: Clock3, label: 'Recent' },
   { to: '/starred', icon: Star, label: 'Starred' },
   { to: '/trash', icon: Trash2, label: 'Trash' },
@@ -25,17 +25,18 @@ const FOOTER_LINKS = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
-export function WorkspaceSidebar({ documentCount = 0 }: { documentCount?: number }) {
+export function WorkspaceSidebar() {
   const user = useCurrentUser()
   const logout = useLogout()
   const navigate = useNavigate()
   const show = useToastStore((state) => state.show)
+  const documents = useDocuments('all')
+  const documentCount = documents.data?.length ?? 0
 
   return (
     <aside className="workspace-sidebar">
       <div className="sidebar-brand-row">
         <Link to="/dashboard"><Brand /></Link>
-        <ThemeToggle />
       </div>
    
       <Link className="workspace-nav sidebar-home-link" to="/dashboard">

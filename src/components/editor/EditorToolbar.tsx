@@ -190,6 +190,45 @@ export function EditorToolbar({
 
         <span className="tool-tip">Select text to edit · drag to move</span>
         <div className="zoom-control">
+          <button 
+            className="icon-button text-xs font-medium" 
+            style={{ fontSize: '11px', padding: '0 6px' }}
+            onClick={() => {
+              const container = document.querySelector('.pdf-workspace')
+              if (container && state.document?.pages[0]) {
+                const availableWidth = container.clientWidth - 40
+                const zoom = availableWidth / state.document.pages[0].width
+                state.setZoom(Math.max(0.1, Math.min(zoom, 5)))
+              }
+            }}
+            title="Fit Width"
+          >
+            Fit W
+          </button>
+          <button 
+            className="icon-button text-xs font-medium" 
+            style={{ fontSize: '11px', padding: '0 6px' }}
+            onClick={() => {
+              const container = document.querySelector('.pdf-workspace')
+              if (container && state.document?.pages[0]) {
+                const availableHeight = container.clientHeight - 40
+                const zoom = availableHeight / state.document.pages[0].height
+                state.setZoom(Math.max(0.1, Math.min(zoom, 5)))
+              }
+            }}
+            title="Fit Page"
+          >
+            Fit P
+          </button>
+          <button 
+            className="icon-button text-xs font-medium" 
+            style={{ fontSize: '11px', padding: '0 6px' }}
+            onClick={() => state.setZoom(1)}
+            title="100% Zoom"
+          >
+            100%
+          </button>
+          <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', margin: '0 4px' }} />
           <button
             className="icon-button"
             aria-label="Zoom out"

@@ -2,6 +2,8 @@ import { useRef, type PointerEvent } from 'react'
 import type { TextElement } from '../../types/editor'
 import { pageRectToCss } from '../../engine/coordinate-transformer'
 import { useEditorStore } from '../../store/editor-store'
+import { measureTextElement } from '../../engine/text-measurement'
+
 export function TextOverlay({
   element,
   zoom,
@@ -13,17 +15,28 @@ export function TextOverlay({
 }) {
   const rect = pageRectToCss(
     element,
-    { id: element.pageId, width: 0, height: 0, rotation: 0 } as any,
+    { id: element.pageId, width: 0, height: 0, rotation: 0 } as unknown as import('../../types/editor').EditorPage,
     zoom,
   )
   const update = useEditorStore((s) => s.updateElement)
   const selected = useEditorStore((s) => s.selectedElementId === element.id)
   const activeTool = useEditorStore((s) => s.activeTool)
-  const setActiveTool = useEditorStore((s) => s.setActiveTool)
   
   const isPdfText = element.source === 'pdf'
-  const isEditable = activeTool === 'edit-text'
+  const [isEditing, setIsEditing] = useState(() => element.text === 'New text' && !isPdfText)
+  useEffect(() => {
+    if (!selected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsEditing(false)
+    }
+  }, [selected])
+
+  const isEditable = (isPdfText && activeTool === 'edit-text') || (!isPdfText && isEditing)
   const isPointer = activeTool === 'pointer'
+  
+  const allowInteraction = isPdfText 
+    ? activeTool === 'edit-text' 
+    : (activeTool === 'pointer' || activeTool === 'text')
 
   const start = useRef<{
     x: number
@@ -71,12 +84,12 @@ export function TextOverlay({
         minHeight: rect.height,
         transform: `rotate(${rect.rotation}deg)`,
         transformOrigin: 'top left',
-        pointerEvents: isPointer && isPdfText ? 'none' : 'auto',
-        userSelect: isPointer && isPdfText ? 'none' : 'text',
+        pointerEvents: allowInteraction ? 'auto' : 'none',
+        userSelect: allowInteraction ? 'text' : 'none',
       }}
       onDoubleClick={() => {
         if (!isPdfText && isPointer) {
-          setActiveTool('edit-text')
+          setIsEditing(true)
         }
       }}
       onPointerDown={drag}
@@ -87,14 +100,34 @@ export function TextOverlay({
     >
       {selected && isEditable ? (
         <textarea
+          data-editor-input="true"
           aria-label="Selected PDF text"
           value={element.text}
-          onChange={(e) => update(element.id, { text: e.target.value })}
+          onChange={(e) => {
+            const newText = e.target.value
+            const newWidth = measureTextElement(
+              newText,
+              element.fontSize,
+              element.fontFamily,
+              element.bold,
+              element.italic
+            )
+            const numLines = newText.split('\n').length
+            const newHeight = numLines * element.fontSize * (element.lineHeight || 1.2)
+            
+            update(element.id, { 
+              text: newText,
+              width: newWidth,
+              height: newHeight,
+              edited: true
+            })
+          }}
           onPointerDown={(e) => e.stopPropagation()}
           disabled={element.locked}
+          wrap="off"
           style={{
             fontSize: element.fontSize * zoom,
-            fontFamily: element.fontFamily,
+            fontFamily: `"${element.fontFamily}", sans-serif`,
             fontWeight: element.bold ? 'bold' : 'normal',
             fontStyle: element.italic ? 'italic' : 'normal',
             textAlign: element.textAlign || 'left',
@@ -109,15 +142,17 @@ export function TextOverlay({
             padding: 0,
             resize: 'none',
             overflow: 'hidden',
+            whiteSpace: 'pre',
+            boxSizing: 'border-box',
           }}
         />
       ) : (
         <span
           style={{
             display: 'block',
-            whiteSpace: 'pre-wrap',
+            whiteSpace: 'pre',
             fontSize: element.fontSize * zoom,
-            fontFamily: element.fontFamily,
+            fontFamily: `"${element.fontFamily}", sans-serif`,
             fontWeight: element.bold ? 'bold' : 'normal',
             fontStyle: element.italic ? 'italic' : 'normal',
             textAlign: element.textAlign || 'left',

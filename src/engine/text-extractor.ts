@@ -11,6 +11,26 @@ export async function extractNativeText(document: PDFDocumentProxy, pages: Edito
     content.items.forEach((rawItem, itemIndex) => {
       if (!('str' in rawItem) || !rawItem.str.trim()) return
       const bounds = viewportRectToPageRect(page, rawItem)
+      
+      const style = content.styles[rawItem.fontName]
+      let fontFamily = 'Helvetica'
+      let isBold = false
+      let isItalic = false
+      
+      if (style && style.fontFamily) {
+        // Many PDFs have weird font family names, we keep it as is.
+        // It's better than forcing everything to Helvetica.
+        fontFamily = style.fontFamily
+      }
+      
+      const lowerFontName = rawItem.fontName.toLowerCase()
+      if (lowerFontName.includes('bold')) {
+        isBold = true
+      }
+      if (lowerFontName.includes('italic') || lowerFontName.includes('oblique')) {
+        isItalic = true
+      }
+
       elements.push({
         type: 'text',
         id: `pdf-text-${pageId}-${itemIndex}`,
@@ -23,7 +43,9 @@ export async function extractNativeText(document: PDFDocumentProxy, pages: Edito
         width: bounds.width,
         height: bounds.height,
         fontSize: bounds.height,
-        fontFamily: 'Helvetica',
+        fontFamily,
+        bold: isBold,
+        italic: isItalic,
         color: '#1f2937',
         rotation: bounds.rotation,
         originalBounds: bounds,

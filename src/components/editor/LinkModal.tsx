@@ -15,6 +15,7 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
   
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setText(initialText)
       setUrl(initialUrl)
     }

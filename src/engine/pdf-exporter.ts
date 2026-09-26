@@ -11,10 +11,24 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
   const pdf = await PDFDocument.create()
   
   const fonts = {
-    regular: await pdf.embedFont(StandardFonts.Helvetica),
-    bold: await pdf.embedFont(StandardFonts.HelveticaBold),
-    italic: await pdf.embedFont(StandardFonts.HelveticaOblique),
-    boldItalic: await pdf.embedFont(StandardFonts.HelveticaBoldOblique),
+    helvetica: {
+      regular: await pdf.embedFont(StandardFonts.Helvetica),
+      bold: await pdf.embedFont(StandardFonts.HelveticaBold),
+      italic: await pdf.embedFont(StandardFonts.HelveticaOblique),
+      boldItalic: await pdf.embedFont(StandardFonts.HelveticaBoldOblique),
+    },
+    times: {
+      regular: await pdf.embedFont(StandardFonts.TimesRoman),
+      bold: await pdf.embedFont(StandardFonts.TimesRomanBold),
+      italic: await pdf.embedFont(StandardFonts.TimesRomanItalic),
+      boldItalic: await pdf.embedFont(StandardFonts.TimesRomanBoldItalic),
+    },
+    courier: {
+      regular: await pdf.embedFont(StandardFonts.Courier),
+      bold: await pdf.embedFont(StandardFonts.CourierBold),
+      italic: await pdf.embedFont(StandardFonts.CourierOblique),
+      boldItalic: await pdf.embedFont(StandardFonts.CourierBoldOblique),
+    }
   }
 
   // Iterate over documentState.pages and reconstruct the PDF
@@ -37,6 +51,21 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
     const page = pdf.getPage(targetIndex)
     const pageHeight = page.getHeight()
     
+    if (element.type === 'source-image') {
+      if ((element as import('../types/editor').SourceImageElement).deleted) {
+        const coverY = pageHeight - element.y - element.height
+        page.drawRectangle({
+          x: element.x,
+          y: coverY,
+          width: element.width,
+          height: element.height,
+          color: rgb(1, 1, 1),
+          opacity: 1,
+        })
+      }
+      continue
+    }
+
     if (element.type === 'text') {
       const original = element.originalBounds ?? element
       const coverY = pageHeight - original.y - original.height
@@ -53,10 +82,15 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
       }
 
       if (element.text.trim()) {
-        const activeFont = element.bold && element.italic ? fonts.boldItalic
-                         : element.bold ? fonts.bold
-                         : element.italic ? fonts.italic
-                         : fonts.regular;
+        const family = element.fontFamily?.toLowerCase() || ''
+        const fontSet = family.includes('times') || family.includes('serif') ? fonts.times
+                      : family.includes('courier') || family.includes('mono') ? fonts.courier
+                      : fonts.helvetica
+
+        const activeFont = element.bold && element.italic ? fontSet.boldItalic
+                         : element.bold ? fontSet.bold
+                         : element.italic ? fontSet.italic
+                         : fontSet.regular;
 
         const lines = element.text.split('\n')
         const lineHeight = (element.lineHeight || 1.2) * element.fontSize

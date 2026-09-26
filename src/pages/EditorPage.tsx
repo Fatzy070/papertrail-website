@@ -1,23 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageSidebar } from '../components/editor/PageSidebar'
 import { PropertyPanel } from '../components/editor/PropertyPanel'
 import { Dialog } from '../components/ui/Dialog'
 import { LoadingState } from '../components/ui/LoadingState'
 import { documentsApi } from '../api/documents.api'
+import { apiFetchRaw } from '../api/client'
 import { EditorToolbar } from '../components/editor/EditorToolbar'
 import { PdfPage } from '../components/editor/PdfPage'
 import { VersionHistory } from '../components/editor/VersionHistory'
 import { exportPdf } from '../engine/pdf-exporter'
-import { useDocument, useSaveDocument } from '../hooks/use-documents'
+import { useDocument, useSaveDocument, useUpdateDocument } from '../hooks/use-documents'
 import { usePdfEditor } from '../hooks/use-pdf-editor'
 import { useEditorStore } from '../store/editor-store'
 import { useToastStore } from '../store/toast-store'
+import { useEditorKeyboardShortcuts } from '../hooks/use-editor-keyboard-shortcuts'
+
 export function EditorPage() {
   const { documentId = '' } = useParams()
   const navigate = useNavigate()
   const metadata = useDocument(documentId)
   const saveMutation = useSaveDocument()
+  const updateMutation = useUpdateDocument()
   const { pdf, openBytes, loading, error } = usePdfEditor()
   const loaded = useRef(false)
   const [history, setHistory] = useState(false)
@@ -31,6 +35,8 @@ export function EditorPage() {
   const [activePage, setActivePage] = useState(0)
   const [leaving, setLeaving] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
+
+  useEditorKeyboardShortcuts()
 
   function handleAddImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -86,23 +92,57 @@ export function EditorPage() {
     img.src = src
     e.target.value = ''
   }
-  const loadRemote = useCallback(async () => {
-    if (!metadata.data) return
-    const url = documentsApi.contentUrl(documentId)
-    const response = await fetch(url, { credentials: 'include' })
-    if (!response.ok) throw new Error('The PDF could not be downloaded.')
-    await openBytes(metadata.data.name, await response.arrayBuffer(), {
-      type: 'remote',
-      documentId,
-    })
-  }, [documentId, metadata.data, openBytes])
+  const [fetching, setFetching] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
   useEffect(() => {
-    if (!metadata.data || loaded.current) return
-    loaded.current = true
-    void loadRemote().catch((e) =>
-      show(e instanceof Error ? e.message : 'Unable to open PDF.', 'error'),
-    )
-  }, [metadata.data, loadRemote, show])
+    if (!metadata.data) return
+    if (pdf && document?.name === metadata.data.name) return
+
+    const controller = new AbortController()
+
+    async function load() {
+      setFetching(true)
+      setFetchError(null)
+      try {
+        const response = await apiFetchRaw(`/documents/${documentId}/content`, { signal: controller.signal })
+        if (!response.ok) throw new Error(`The PDF could not be downloaded (HTTP ${response.status}).`)
+        
+        const arrayBuffer = await response.arrayBuffer()
+        if (controller.signal.aborted) return
+        
+        await openBytes(metadata.data!.name, arrayBuffer, {
+          type: 'remote',
+          documentId,
+        })
+
+        try {
+          await updateMutation.mutateAsync({ 
+            id: documentId, 
+            updates: { lastOpenedAt: new Date().toISOString() } 
+          })
+        } catch (err) {
+          console.error('Failed to update last opened at', err)
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+        const message = err instanceof Error ? err.message : 'Unable to open PDF.'
+        setFetchError(message)
+        show(message, 'error')
+      } finally {
+        if (!controller.signal.aborted) {
+          setFetching(false)
+        }
+      }
+    }
+
+    void load()
+
+    return () => {
+      controller.abort()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId, metadata.data?.name, openBytes])
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) e.preventDefault()
@@ -165,7 +205,7 @@ export function EditorPage() {
   }
   function back() {
     if (dirty) setLeaving(true)
-    else navigate('/dashboard')
+    else navigate('/documents')
   }
   async function restored() {
     loaded.current = false
@@ -211,12 +251,12 @@ export function EditorPage() {
         />
         <section className="pdf-workspace" aria-label="Document canvas">
           <div className="pdf-pages">
-            {(loading || metadata.isPending) && (
+            {(loading || metadata.isPending || fetching) && (
               <LoadingState label="Opening your PDF" />
             )}
-            {(error || metadata.error) && (
+            {(error || metadata.error || fetchError) && (
               <div className="error-message" role="alert">
-                {error ?? metadata.error?.message}
+                {error ?? fetchError ?? metadata.error?.message}
                 <p>Return to your documents and try opening the PDF again.</p>
               </div>
             )}
@@ -267,7 +307,7 @@ export function EditorPage() {
             </button>
             <button
               className="danger-button"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/documents')}
             >
               Discard changes
             </button>
