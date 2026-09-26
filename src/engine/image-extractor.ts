@@ -54,12 +54,13 @@ export async function extractNativeImages(page: PDFPageProxy, pageId: string): P
         const maxY = Math.max(...ys)
         
         // Convert from PDF space to viewport space
-        const rect = viewport.convertToViewportRectangle([minX, minY, maxX, maxY])
+        const pt1 = viewport.convertToViewportPoint(minX, minY)
+        const pt2 = viewport.convertToViewportPoint(maxX, maxY)
         
-        const vx = Math.min(rect[0], rect[2])
-        const vy = Math.min(rect[1], rect[3])
-        const vw = Math.abs(rect[2] - rect[0])
-        const vh = Math.abs(rect[3] - rect[1])
+        const vx = Math.min(pt1[0], pt2[0])
+        const vy = Math.min(pt1[1], pt2[1])
+        const vw = Math.abs(pt2[0] - pt1[0])
+        const vh = Math.abs(pt2[1] - pt1[1])
         
         elements.push({
           type: 'source-image',

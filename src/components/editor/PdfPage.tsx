@@ -212,7 +212,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
             const bounds = element.originalBounds ?? element
             return (
               <div
-                key={element.id}
+                key={`bg-${element.id}`}
                 style={{
                   position: 'absolute',
                   pointerEvents: 'none',
@@ -225,10 +225,10 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
               />
             )
           })}
-        {elements
-          .filter((element): element is import('../../types/editor').SourceImageElement => element.type === 'source-image' && !element.deleted)
-          .map((element) => {
-            const isSelected = selectedElementId === element.id
+        {elements.map((element) => {
+          if (element.type === 'source-image') {
+            if (element.deleted) return null;
+            const isSelected = selectedElementId === element.id;
             return (
               <div
                 key={element.id}
@@ -251,47 +251,49 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
                 }}
               />
             )
-          })}
-        {elements
-          .filter((element): element is import('../../types/editor').ImageElement | import('../../types/editor').SignatureElement => element.type === 'image' || element.type === 'signature')
-          .map((element) => (
-          <ImageOverlay
-            key={element.id}
-            element={element}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
-        {elements
-          .filter((element): element is import('../../types/editor').DrawingElement => element.type === 'drawing')
-          .map((element) => (
-          <DrawingOverlay
-            key={element.id}
-            element={element}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
-        {elements
-          .filter((element): element is import('../../types/editor').TextElement => element.type === 'text')
-          .map((element) => (
-          <TextOverlay
-            key={element.id}
-            element={element}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
-        {elements
-          .filter((element): element is import('../../types/editor').NoteElement => element.type === 'note')
-          .map((element) => (
-          <NoteOverlay
-            key={element.id}
-            element={element}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
+          }
+          if (element.type === 'image' || element.type === 'signature') {
+            return (
+              <ImageOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          if (element.type === 'drawing') {
+            return (
+              <DrawingOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          if (element.type === 'text') {
+            return (
+              <TextOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          if (element.type === 'note') {
+            return (
+              <NoteOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          return null
+        })}
       </div>
       
       {/* Current Drawing Stroke Overlay */}

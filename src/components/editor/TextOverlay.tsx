@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent } from 'react'
+import { useRef, useState, useEffect, type PointerEvent } from 'react'
 import type { TextElement } from '../../types/editor'
 import { pageRectToCss } from '../../engine/coordinate-transformer'
 import { useEditorStore } from '../../store/editor-store'
@@ -48,7 +48,6 @@ export function TextOverlay({
     if (element.locked) return
     onSelect(element.id)
     
-    // Extracted PDF text is never draggable. Added text is only draggable in pointer mode.
     if (isPdfText || !isPointer) return
 
     start.current = {
