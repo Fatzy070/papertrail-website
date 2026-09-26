@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link2 } from 'lucide-react'
 
 interface LinkModalProps {
@@ -38,7 +39,7 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
     onClose()
   }
 
-  return (
+  return createPortal(
     <div className="link-modal-overlay" style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
@@ -90,6 +91,7 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
           <button className="primary-button" onClick={handleApply}>Add link</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

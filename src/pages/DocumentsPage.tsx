@@ -4,6 +4,7 @@ import {
   FileText,
   FolderOpen,
   Search,
+  Star,
   UploadCloud,
 } from 'lucide-react'
 import { Dialog } from '../components/ui/Dialog'
@@ -251,6 +252,7 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
                               <FileText size={16} />
                             </span>
                             <span title={document.name} className="truncate text-sm">{document.name}</span>
+                            {document.isStarred && <Star size={14} className="text-yellow-500 shrink-0 ml-1 fill-yellow-500" />}
                           </button>
                         </td>
                         <td className="px-5 py-3 text-sm text-slate-500 hidden sm:table-cell">

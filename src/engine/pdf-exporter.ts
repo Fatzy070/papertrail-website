@@ -1,47 +1,121 @@
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
+import type { PDFFont } from 'pdf-lib'
 import type { PdfDocumentState, EditorElement } from '../types/editor'
 import { applyTextAnnotation } from './annotations/text-annotation'
 import { applyInkAnnotation } from './annotations/ink-annotation'
 import { parseHexColor, domToPdfRect } from './annotations/annotation-utils'
 import { applyLinkAnnotation } from './annotations/link-annotation'
+import { pdfCache } from './pdf-cache'
+import {
+  FONT_REGISTRY,
+  resolveFontId,
+  fetchFontBytes,
+  type FontId,
+  type FontVariant,
+} from './font-registry'
+
+/** Resolve a variant name from bold/italic flags */
+function variantFromFlags(bold?: boolean, italic?: boolean): FontVariant {
+  if (bold && italic) return 'boldItalic'
+  if (bold) return 'bold'
+  if (italic) return 'italic'
+  return 'regular'
+}
+
+/** Embedded font cache for one export run. Key: `fontId:variant` */
+type EmbedCache = Map<string, PDFFont>
+
+async function getOrEmbedFont(
+  pdf: PDFDocument,
+  fontId: FontId,
+  variant: FontVariant,
+  cache: EmbedCache,
+): Promise<PDFFont> {
+  const key = `${fontId}:${variant}`
+  const cached = cache.get(key)
+  if (cached) return cached
+
+  const entry = FONT_REGISTRY[fontId]
+
+  if (entry.isStandard) {
+    // Map to pdf-lib StandardFonts
+    let stdFont: StandardFonts
+    if (fontId === 'times') {
+      stdFont =
+        variant === 'boldItalic' ? StandardFonts.TimesRomanBoldItalic
+        : variant === 'bold'     ? StandardFonts.TimesRomanBold
+        : variant === 'italic'   ? StandardFonts.TimesRomanItalic
+        :                          StandardFonts.TimesRoman
+    } else if (fontId === 'courier') {
+      stdFont =
+        variant === 'boldItalic' ? StandardFonts.CourierBoldOblique
+        : variant === 'bold'     ? StandardFonts.CourierBold
+        : variant === 'italic'   ? StandardFonts.CourierOblique
+        :                          StandardFonts.Courier
+    } else {
+      // helvetica
+      stdFont =
+        variant === 'boldItalic' ? StandardFonts.HelveticaBoldOblique
+        : variant === 'bold'     ? StandardFonts.HelveticaBold
+        : variant === 'italic'   ? StandardFonts.HelveticaOblique
+        :                          StandardFonts.Helvetica
+    }
+    const font = await pdf.embedFont(stdFont)
+    cache.set(key, font)
+    return font
+  }
+
+  // Custom font: fetch TTF bytes and embed with fontkit
+  const bytes = await fetchFontBytes(fontId, variant)
+  if (!bytes) {
+    // Fallback: try regular variant, then helvetica
+    if (variant !== 'regular') return getOrEmbedFont(pdf, fontId, 'regular', cache)
+    return getOrEmbedFont(pdf, 'helvetica', 'regular', cache)
+  }
+  const font = await pdf.embedFont(bytes)
+  cache.set(key, font)
+  return font
+}
 
 
 export async function exportPdf(documentState: PdfDocumentState, allElements: EditorElement[]) {
   const originalPdf = await PDFDocument.load(documentState.bytes)
   const pdf = await PDFDocument.create()
-  
-  const fonts = {
-    helvetica: {
-      regular: await pdf.embedFont(StandardFonts.Helvetica),
-      bold: await pdf.embedFont(StandardFonts.HelveticaBold),
-      italic: await pdf.embedFont(StandardFonts.HelveticaOblique),
-      boldItalic: await pdf.embedFont(StandardFonts.HelveticaBoldOblique),
-    },
-    times: {
-      regular: await pdf.embedFont(StandardFonts.TimesRoman),
-      bold: await pdf.embedFont(StandardFonts.TimesRomanBold),
-      italic: await pdf.embedFont(StandardFonts.TimesRomanItalic),
-      boldItalic: await pdf.embedFont(StandardFonts.TimesRomanBoldItalic),
-    },
-    courier: {
-      regular: await pdf.embedFont(StandardFonts.Courier),
-      bold: await pdf.embedFont(StandardFonts.CourierBold),
-      italic: await pdf.embedFont(StandardFonts.CourierOblique),
-      boldItalic: await pdf.embedFont(StandardFonts.CourierBoldOblique),
-    }
-  }
+  pdf.registerFontkit(fontkit)
+
+  // Per-export font cache (avoids re-fetching / re-embedding same font)
+  const embedCache: EmbedCache = new Map()
 
   // Iterate over documentState.pages and reconstruct the PDF
   const pageIdToIndex = new Map<string, number>()
+  const pdfLibCache = new Map<string, PDFDocument>()
+
   for (let i = 0; i < documentState.pages.length; i++) {
     const pageInfo = documentState.pages[i]
     pageIdToIndex.set(pageInfo.id, i)
     if (pageInfo.kind === 'blank') {
       pdf.addPage([pageInfo.width, pageInfo.height])
+    } else if (pageInfo.kind === 'imported') {
+      let importedPdf = pdfLibCache.get(pageInfo.sourceDocumentId)
+      if (!importedPdf) {
+        const cached = pdfCache.get(pageInfo.sourceDocumentId)
+        if (!cached) throw new Error('Imported PDF bytes not found in cache.')
+        importedPdf = await PDFDocument.load(cached.bytes)
+        pdfLibCache.set(pageInfo.sourceDocumentId, importedPdf)
+      }
+      const [copiedPage] = await pdf.copyPages(importedPdf, [pageInfo.sourcePageIndex])
+      pdf.addPage(copiedPage)
     } else {
       const originalIndex = pageInfo.sourcePageIndex ?? i
       const [copiedPage] = await pdf.copyPages(originalPdf, [originalIndex])
       pdf.addPage(copiedPage)
+    }
+    
+    // Apply user-defined rotation if any
+    if (pageInfo.rotation) {
+      const page = pdf.getPage(pdf.getPageCount() - 1)
+      page.setRotation(degrees(pageInfo.rotation))
     }
   }
 
@@ -67,6 +141,11 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
     }
 
     if (element.type === 'text') {
+      if (element.source === 'pdf' && !element.edited) {
+        // Native text is already in the PDF. Only draw it if we added a link or modified it.
+        if (!element.link) continue
+      }
+      
       const original = element.originalBounds ?? element
       const coverY = pageHeight - original.y - original.height
       
@@ -81,64 +160,108 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
         })
       }
 
-      if (element.text.trim()) {
-        const family = element.fontFamily?.toLowerCase() || ''
-        const fontSet = family.includes('times') || family.includes('serif') ? fonts.times
-                      : family.includes('courier') || family.includes('mono') ? fonts.courier
-                      : fonts.helvetica
+      if (element.text.trim() && (element.source === 'user' || element.edited)) {
+        const fontId = element.fontId ?? resolveFontId(element.fontFamily || 'Helvetica')
+        const variant = variantFromFlags(element.bold, element.italic)
+        const activeFont = await getOrEmbedFont(pdf, fontId, variant, embedCache)
 
-        const activeFont = element.bold && element.italic ? fontSet.boldItalic
-                         : element.bold ? fontSet.bold
-                         : element.italic ? fontSet.italic
-                         : fontSet.regular;
-
-        const lines = element.text.split('\n')
         const lineHeight = (element.lineHeight || 1.2) * element.fontSize
 
-        lines.forEach((line, index) => {
-          let textX = element.x
-          
-          if (element.textAlign === 'center' || element.textAlign === 'right') {
-            const textWidth = activeFont.widthOfTextAtSize(line, element.fontSize)
-            if (element.textAlign === 'center') {
-              textX = element.x + (element.width / 2) - (textWidth / 2)
-            } else if (element.textAlign === 'right') {
-              textX = element.x + element.width - textWidth
+        // Helper to wrap text precisely within width
+        const rawBlocks = element.text.split('\n')
+        const wrappedLines: string[] = []
+        for (const block of rawBlocks) {
+          if (!block) {
+            wrappedLines.push('')
+            continue
+          }
+          const words = block.split(/(\s+)/) // keep space as tokens
+          let currentLine = ''
+          for (const word of words) {
+            if (!word) continue
+            const testLine = currentLine + word
+            const width = activeFont.widthOfTextAtSize(testLine, element.fontSize)
+            if (width > element.width && currentLine !== '') {
+              if (word.trim() === '') {
+                // If it's just spaces exceeding width, we skip them
+                continue
+              }
+              wrappedLines.push(currentLine)
+              currentLine = word
+            } else {
+              currentLine = testLine
             }
           }
+          if (currentLine) {
+            wrappedLines.push(currentLine)
+          }
+        }
 
-          const textY = pageHeight - element.y - element.fontSize - (index * lineHeight)
-          
+        wrappedLines.forEach((line, index) => {
+          let textX = element.x
+          const textWidth = activeFont.widthOfTextAtSize(line, element.fontSize)
+
+          if (element.textAlign === 'center') {
+            textX = element.x + element.width / 2 - textWidth / 2
+          } else if (element.textAlign === 'right') {
+            textX = element.x + element.width - textWidth
+          }
+
+          // The first line baseline starts 1 fontSize from the top of the box.
+          const textY = pageHeight - element.y - element.fontSize - index * lineHeight
+
+          // To rotate around the center of the text element:
+          const cx = element.x + element.width / 2
+          const cy = pageHeight - (element.y + element.height / 2)
+
+          // Translate to origin, rotate, translate back
+          const dx = textX - cx
+          const dy = textY - cy
+          const rad = -element.rotation * (Math.PI / 180) // negative because PDF is CCW
+
+          const rotatedX = cx + dx * Math.cos(rad) - dy * Math.sin(rad)
+          const rotatedY = cy + dx * Math.sin(rad) + dy * Math.cos(rad)
+
           page.drawText(line, {
-            x: textX,
-            y: textY,
+            x: rotatedX,
+            y: rotatedY,
             size: element.fontSize,
             font: activeFont,
             color: rgb(...parseHexColor(element.color)),
-            rotate: degrees(element.rotation),
+            rotate: degrees(-element.rotation),
           })
-          
+
           if (element.link) {
-            const textWidth = activeFont.widthOfTextAtSize(line, element.fontSize)
+            const linkDx = textX - cx
+            const linkDy = textY - 2 - cy
+            const linkRotatedX = cx + linkDx * Math.cos(rad) - linkDy * Math.sin(rad)
+            const linkRotatedY = cy + linkDx * Math.sin(rad) + linkDy * Math.cos(rad)
+
+            const endDx = textX + textWidth - cx
+            const endDy = textY - 2 - cy
+            const endRotatedX = cx + endDx * Math.cos(rad) - endDy * Math.sin(rad)
+            const endRotatedY = cy + endDx * Math.sin(rad) + endDy * Math.cos(rad)
+
             page.drawLine({
-              start: { x: textX, y: textY - 2 },
-              end: { x: textX + textWidth, y: textY - 2 },
+              start: { x: linkRotatedX, y: linkRotatedY },
+              end: { x: endRotatedX, y: endRotatedY },
               thickness: 1,
-              color: rgb(...parseHexColor(element.color))
+              color: rgb(...parseHexColor(element.color)),
             })
           }
         })
-        
-        if (element.link) {
-          applyLinkAnnotation(page, {
-            id: element.id,
-            rect: domToPdfRect(element.x, element.y, element.width, element.height, pageHeight),
-            url: element.link.url
-          })
-        }
+      }
+
+      if (element.link) {
+        applyLinkAnnotation(page, {
+          id: element.id,
+          rect: domToPdfRect(element.x, element.y, element.width, element.height, pageHeight),
+          url: element.link.url,
+        })
       }
     } else if (element.type === 'image' || element.type === 'signature') {
       let pdfImage
+
       
       let imageBuffer: ArrayBuffer | string = element.src
       const isWebp = element.type === 'image' && element.mimeType === 'image/webp'
@@ -163,6 +286,9 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
       } else if (element.src.startsWith('blob:')) {
         const response = await fetch(element.src)
         imageBuffer = await response.arrayBuffer()
+      } else if (element.src.startsWith('data:image/')) {
+        const response = await fetch(element.src)
+        imageBuffer = await response.arrayBuffer()
       }
 
       const isJpeg = (element.type === 'image' && (element.mimeType === 'image/jpeg' || element.mimeType === 'image/jpg')) || element.src.startsWith('data:image/jpeg') || element.src.startsWith('data:image/jpg')
@@ -173,9 +299,22 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
         pdfImage = await pdf.embedPng(imageBuffer)
       }
 
+      const imgX = element.x
+      const imgY = pageHeight - element.y - element.height
+      
+      const cx = element.x + element.width / 2
+      const cy = pageHeight - (element.y + element.height / 2)
+      
+      const dx = imgX - cx
+      const dy = imgY - cy
+      const rad = -element.rotation * (Math.PI / 180)
+      
+      const rotatedX = cx + dx * Math.cos(rad) - dy * Math.sin(rad)
+      const rotatedY = cy + dx * Math.sin(rad) + dy * Math.cos(rad)
+
       page.drawImage(pdfImage, {
-        x: element.x,
-        y: pageHeight - element.y - element.height,
+        x: rotatedX,
+        y: rotatedY,
         width: element.width,
         height: element.height,
         rotate: degrees(-element.rotation),
@@ -210,6 +349,95 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
         color: parseHexColor(element.color),
         author: element.author || 'User',
       })
+    }
+  }
+
+  // Draw watermark if configured
+  if (documentState.watermark && documentState.watermark.source === 'user') {
+    const wm = documentState.watermark
+    const wmFont = await getOrEmbedFont(pdf, 'helvetica', 'bold', embedCache)
+    let pdfImage: Awaited<ReturnType<typeof pdf.embedPng>> | undefined
+    if (wm.type === 'image' && wm.imageBytes) {
+      try {
+        pdfImage = await pdf.embedPng(wm.imageBytes)
+      } catch {
+        pdfImage = await pdf.embedJpg(wm.imageBytes)
+      }
+    }
+
+    for (let i = 0; i < pdf.getPageCount(); i++) {
+      const page = pdf.getPage(i)
+      const { width, height } = page.getSize()
+      const cx = width / 2
+      const cy = height / 2
+
+      if (wm.type === 'text' && wm.text) {
+        const font = wmFont
+        // Start with base size of 72, scale it
+        const fontSize = 72 * wm.scale
+        const textWidth = font.widthOfTextAtSize(wm.text, fontSize)
+        const textHeight = font.heightAtSize(fontSize)
+        
+        // Calculate offset to rotate around center of text
+        // In pdf-lib, rotation is around (x,y) which is the bottom-left of the text bounding box.
+        // We want the center of the text to be at (cx, cy).
+        // The bottom-left of the text unrotated would be:
+        // tx = cx - textWidth / 2
+        // ty = cy - textHeight / 2
+        
+        const dx = -textWidth / 2
+        const dy = -textHeight / 2
+        const rad = -wm.rotation * (Math.PI / 180)
+        
+        const rotatedX = cx + dx * Math.cos(rad) - dy * Math.sin(rad)
+        const rotatedY = cy + dx * Math.sin(rad) + dy * Math.cos(rad)
+        
+        page.drawText(wm.text, {
+          x: rotatedX,
+          y: rotatedY,
+          size: fontSize,
+          font,
+          color: rgb(...parseHexColor(wm.color || '#ff0000')),
+          opacity: wm.opacity,
+          rotate: degrees(-wm.rotation),
+        })
+      } else if (wm.type === 'image' && pdfImage) {
+        const imgDims = pdfImage.scale(1)
+        // Keep within 80% of page size max
+        const maxWidth = width * 0.8
+        const maxHeight = height * 0.8
+        let drawW = imgDims.width
+        let drawH = imgDims.height
+        
+        if (drawW > maxWidth) {
+          drawH = drawH * (maxWidth / drawW)
+          drawW = maxWidth
+        }
+        if (drawH > maxHeight) {
+          drawW = drawW * (maxHeight / drawH)
+          drawH = maxHeight
+        }
+        
+        // apply scale
+        drawW *= wm.scale
+        drawH *= wm.scale
+        
+        const dx = -drawW / 2
+        const dy = -drawH / 2
+        const rad = -wm.rotation * (Math.PI / 180)
+        
+        const rotatedX = cx + dx * Math.cos(rad) - dy * Math.sin(rad)
+        const rotatedY = cy + dx * Math.sin(rad) + dy * Math.cos(rad)
+        
+        page.drawImage(pdfImage, {
+          x: rotatedX,
+          y: rotatedY,
+          width: drawW,
+          height: drawH,
+          opacity: wm.opacity,
+          rotate: degrees(-wm.rotation),
+        })
+      }
     }
   }
 

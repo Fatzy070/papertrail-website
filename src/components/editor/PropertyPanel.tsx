@@ -3,6 +3,8 @@ import { SlidersHorizontal, Trash2, Type, Bold, Italic, AlignLeft, AlignCenter, 
 import { useEditorStore } from '../../store/editor-store'
 import { ColorPicker } from '../ui/ColorPicker'
 import { LinkModal } from './LinkModal'
+import { FONT_REGISTRY, FONT_ORDER, resolveFontId, getCssFontFamily } from '../../engine/font-registry'
+import type { FontId } from '../../engine/font-registry'
 
 export function PropertyPanel() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
@@ -43,6 +45,39 @@ export function PropertyPanel() {
               </label>
             </>
           )}
+
+          {/* Font family dropdown — text elements only */}
+          {selected.type === 'text' && (() => {
+            const currentFontId: FontId = selected.fontId ?? resolveFontId(selected.fontFamily || 'Helvetica')
+            return (
+              <label className="field-label" style={{ gridColumn: '1 / -1' }}>
+                Font
+                <select
+                  className="text-input"
+                  value={currentFontId}
+                  onChange={(e) => {
+                    const newFontId = e.target.value as FontId
+                    const entry = FONT_REGISTRY[newFontId]
+                    update(selected.id, {
+                      fontId: newFontId,
+                      fontFamily: entry.label, // keep fontFamily in sync for old code paths
+                    })
+                  }}
+                  style={{ fontFamily: getCssFontFamily(currentFontId) }}
+                >
+                  {FONT_ORDER.map((fid) => (
+                    <option
+                      key={fid}
+                      value={fid}
+                      style={{ fontFamily: getCssFontFamily(fid) }}
+                    >
+                      {FONT_REGISTRY[fid].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          })()}
           
           {selected.type === 'text' && (
             <div className="property-grid" style={{ marginBottom: '12px' }}>
@@ -203,7 +238,7 @@ export function PropertyPanel() {
               </div>
             </div>
           )}
-          <div className="section-label">Position · page points</div>
+          <div className="section-label">Transform</div>
           <div className="property-grid">
             {(['x', 'y'] as const).map((axis) => (
               <label key={axis} className="field-label">
@@ -218,6 +253,17 @@ export function PropertyPanel() {
                 />
               </label>
             ))}
+            <label className="field-label">
+              Rotation
+              <input
+                className="text-input"
+                type="number"
+                value={Math.round(('rotation' in selected ? selected.rotation : 0) || 0)}
+                onChange={(e) =>
+                  update(selected.id, { rotation: +e.target.value })
+                }
+              />
+            </label>
           </div>
           <div className="property-grid" style={{ marginTop: '16px' }}>
             <button className="toolbar-button" onClick={() => useEditorStore.getState().duplicateSelected()}>
