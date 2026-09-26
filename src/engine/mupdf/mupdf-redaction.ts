@@ -33,10 +33,9 @@ export async function applyMuPdfRedactions(
     redactionsByPage.get(r.sourcePageIndex)!.push(r)
   }
 
-  let doc: mupdf.PDFDocument | null = null
   try {
     const baseDoc = mupdf.Document.openDocument(sourceBytes, 'application/pdf')
-    doc = baseDoc.asPDF()
+    const doc = baseDoc.asPDF()
     if (!doc) {
       throw new Error('Not a valid PDF document for MuPDF')
     }
@@ -44,7 +43,7 @@ export async function applyMuPdfRedactions(
     for (const [pageIndex, pageRedactions] of redactionsByPage.entries()) {
       let page: mupdf.PDFPage | undefined
       try {
-        page = doc.loadPage(pageIndex)
+        page = doc.loadPage(pageIndex) as mupdf.PDFPage
         
         for (const r of pageRedactions) {
           // Papertrail coordinate system uses (0,0) at top-left.

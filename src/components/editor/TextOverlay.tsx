@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect, useCallback, type PointerEvent } from 'react'
+import { useState, useRef, useCallback, type PointerEvent } from 'react'
 import type { TextElement } from '../../types/editor'
 import { pageRectToCss } from '../../engine/coordinate-transformer'
 import { useEditorStore } from '../../store/editor-store'
 import { measureTextElement, measureTextHeight } from '../../engine/text-measurement'
-import { resolveFontId, getCssFontFamily } from '../../engine/font-registry'
+import { resolveElementFontId, resolveElementBold, resolveElementItalic, getCssFontFamily } from '../../engine/font-registry'
 import type { EditorPage } from '../../types/editor'
 
 interface Props {
@@ -27,25 +27,15 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   const isPdfText = element.source === 'pdf'
   const isUserText = element.source === 'user'
 
-  // For user-added text, we start in editing mode right away if it hasn't been edited yet
+  // isEditing: only changed from event handlers, never from useEffect (satisfies react-hooks/set-state-in-effect).
+  // Initialized from props: fresh user text auto-starts in editing mode.
   const [isEditing, setIsEditing] = useState(() => isUserText && !element.edited)
 
-  useEffect(() => {
-    if (!selected) {
-      setIsEditing(false)
-    }
-  }, [selected])
-
-  // When user text is newly selected (and it was never edited), enter editing
-  useEffect(() => {
-    if (selected && isUserText && !element.edited && !isEditing) {
-      setIsEditing(true)
-    }
-  }, [selected, isUserText, element.edited, isEditing])
-
-  // Resolve font for preview
-  const fontId = element.fontId ?? resolveFontId(element.fontFamily || 'Helvetica')
+  // Resolve font using the full priority chain (same as export)
+  const fontId = resolveElementFontId(element)
   const cssFontFamily = getCssFontFamily(fontId)
+  const effectiveBold = resolveElementBold(element)
+  const effectiveItalic = resolveElementItalic(element)
 
   // Interaction rules:
   //  - PDF text: interactive only in edit-text mode
@@ -59,7 +49,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   const isEditable = (isPdfText && activeTool === 'edit-text' && selected) ||
                      (isUserText && isEditing && selected)
 
-  // ── Drag to move ─────────────────────────────────────────────────────────
+  // ── Drag to move ────────────────────────────────────────
   const start = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -67,10 +57,17 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
     event.stopPropagation()
 
     if (element.locked) return
+
+    const wasSelected = selected
     onSelect(element.id)
 
-    // Only drag for user text in pointer mode
-    if (!isUserText || activeTool !== 'pointer') return
+    // Fresh user text: enter editing on second click (after first click selects it)
+    if (isUserText && !element.edited && wasSelected && !isEditing) {
+      setIsEditing(true)
+    }
+
+    // Only drag for user text in pointer mode when not in editing mode
+    if (!isUserText || activeTool !== 'pointer' || isEditing) return
 
     start.current = {
       x: event.clientX,
@@ -80,6 +77,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
+
 
   function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
     if (!start.current || element.locked) return
@@ -102,7 +100,6 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
     const maxWidth = getMaxWidth()
 
     let newWidth = element.width
-    let newHeight = element.height
 
     if (!element.manualWidth) {
       // Auto-grow: measure the widest line and expand until page boundary
@@ -110,30 +107,29 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         newText,
         element.fontSize,
         element.fontFamily,
-        element.bold,
-        element.italic,
-        element.fontId,
+        effectiveBold,
+        effectiveItalic,
+        fontId,
       )
       newWidth = Math.min(Math.max(newWidth, measured, 60), maxWidth)
     }
 
     // Height: always driven by content
-    newHeight = measureTextHeight(
+    const newHeight = measureTextHeight(
       newText,
       element.fontSize,
       element.fontFamily,
-      element.bold,
-      element.italic,
+      effectiveBold,
+      effectiveItalic,
       element.lineHeight ?? 1.2,
       newWidth,
-      element.fontId,
+      fontId,
     )
-    newHeight = Math.max(element.fontSize * (element.lineHeight ?? 1.2), newHeight)
 
     update(element.id, {
       text: newText,
       width: newWidth,
-      height: newHeight,
+      height: Math.max(element.fontSize * (element.lineHeight ?? 1.2), newHeight),
       edited: true,
     })
   }
@@ -236,8 +232,8 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   const textStyle: React.CSSProperties = {
     fontSize: element.fontSize * zoom,
     fontFamily: cssFontFamily,
-    fontWeight: element.bold ? 'bold' : 'normal',
-    fontStyle: element.italic ? 'italic' : 'normal',
+    fontWeight: effectiveBold ? 'bold' : 'normal',
+    fontStyle: effectiveItalic ? 'italic' : 'normal',
     textAlign: element.textAlign ?? 'left',
     color:
       element.link && (element.color === '#1f2937' || element.color === '#000000')

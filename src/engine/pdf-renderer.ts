@@ -35,7 +35,9 @@ export async function renderPage(
     return { width: pageInfo.width * zoom, height: pageInfo.height * zoom }
   }
 
-  const sourcePageIndex = pageInfo.kind === 'imported' ? pageInfo.sourcePageIndex : (pageInfo as any).sourcePageIndex
+  const sourcePageIndex = pageInfo.kind === 'imported'
+    ? pageInfo.sourcePageIndex
+    : pageInfo.kind === 'source' ? pageInfo.sourcePageIndex : 0
   const page = await document.getPage(sourcePageIndex + 1)
   if (signal?.aborted) return
   const viewport = page.getViewport({ scale: zoom })

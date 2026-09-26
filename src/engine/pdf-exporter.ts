@@ -9,8 +9,10 @@ import { applyLinkAnnotation } from './annotations/link-annotation'
 import { pdfCache } from './pdf-cache'
 import {
   FONT_REGISTRY,
-  resolveFontId,
   fetchFontBytes,
+  resolveElementFontId,
+  resolveElementBold,
+  resolveElementItalic,
   type FontId,
   type FontVariant,
 } from './font-registry'
@@ -181,8 +183,12 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
       }
       
       if (element.text.trim() && (element.source === 'user' || element.edited)) {
-        const fontId = element.fontId ?? resolveFontId(element.fontFamily || 'Helvetica')
-        const variant = variantFromFlags(element.bold, element.italic)
+        // Resolve font using full priority chain:
+        // styleOverrides > MuPDF source metadata > PDF.js heuristic / fontId
+        const fontId = resolveElementFontId(element)
+        const isBold = resolveElementBold(element)
+        const isItalic = resolveElementItalic(element)
+        const variant = variantFromFlags(isBold, isItalic)
         const activeFont = await getOrEmbedFont(pdf, fontId, variant, embedCache)
 
         const lineHeight = (element.lineHeight || 1.2) * element.fontSize

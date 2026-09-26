@@ -58,9 +58,34 @@ export interface TextElement {
     url: string
   }
   deleted?: boolean
+  /** Immutable source styling captured at extraction time.
+   *  rawFontName comes from PDF.js; the muPdf* fields are added later by the enrichment layer. */
   sourceStyle?: {
+    /** Raw PDF.js internal font name (e.g. "g_d0_f2") — kept for debug only */
     rawFontName: string
+    /** Baseline Y in page-space top-down coords from PDF.js transform[5] — never overwritten */
     baselineY: number
+    /** MuPDF-extracted full font name including subset prefix (e.g. "BAAAAA+LiberationSans-Bold") */
+    muPdfFontName?: string
+    /** Subset prefix stripped (e.g. "LiberationSans-Bold") */
+    normalizedFontName?: string
+    /** From MuPDF font.isBold() */
+    isBold?: boolean
+    /** From MuPDF font.isItalic() */
+    isItalic?: boolean
+    /** From MuPDF font.isMono() */
+    isMono?: boolean
+    /** From MuPDF font.isSerif() */
+    isSerif?: boolean
+  }
+  /** Explicit formatting changes made by the user in the Properties panel.
+   *  These always win over auto-enriched source metadata. */
+  styleOverrides?: {
+    fontId?: import('../engine/font-registry').FontId
+    bold?: boolean
+    italic?: boolean
+    fontSize?: number
+    color?: string
   }
 }
 
