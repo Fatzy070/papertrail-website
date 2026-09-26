@@ -181,9 +181,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       if (index === -1 || index === state.elements.length - 1) return state
       
       const elements = [...state.elements]
-      const temp = elements[index]
-      elements[index] = elements[index + 1]
-      elements[index + 1] = temp
+      const [element] = elements.splice(index, 1)
+      elements.push(element) // Move to the very end (Bring to Front)
       
       const history = state.history.slice(0, state.historyIndex + 1)
       history.push({ elements, pages: state.document?.pages ?? [] })
@@ -196,9 +195,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       if (index <= 0) return state
       
       const elements = [...state.elements]
-      const temp = elements[index]
-      elements[index] = elements[index - 1]
-      elements[index - 1] = temp
+      const [element] = elements.splice(index, 1)
+      elements.unshift(element) // Move to the very beginning (Send to Back)
       
       const history = state.history.slice(0, state.historyIndex + 1)
       history.push({ elements, pages: state.document?.pages ?? [] })
