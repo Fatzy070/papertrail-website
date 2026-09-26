@@ -3,7 +3,15 @@ import { SlidersHorizontal, Trash2, Type, Bold, Italic, AlignLeft, AlignCenter, 
 import { useEditorStore } from '../../store/editor-store'
 import { ColorPicker } from '../ui/ColorPicker'
 import { LinkModal } from './LinkModal'
-import { FONT_REGISTRY, FONT_ORDER, resolveFontId, getCssFontFamily } from '../../engine/font-registry'
+import {
+  FONT_REGISTRY,
+  FONT_ORDER,
+  resolveElementFontId,
+  resolveElementBold,
+  resolveElementItalic,
+  parseFontNameVariant,
+  getCssFontFamily,
+} from '../../engine/font-registry'
 import type { FontId } from '../../engine/font-registry'
 
 export function PropertyPanel() {
@@ -48,10 +56,33 @@ export function PropertyPanel() {
 
           {/* Font family dropdown — text elements only */}
           {selected.type === 'text' && (() => {
-            const currentFontId: FontId = selected.fontId ?? resolveFontId(selected.fontFamily || 'Helvetica')
+            const currentFontId: FontId = resolveElementFontId(selected)
+            const isBold = resolveElementBold(selected)
+            const isItalic = resolveElementItalic(selected)
+
+            // Friendly label for source PDF font (shown below dropdown when font is from source)
+            const sourceFontLabel = (() => {
+              const norm = selected.sourceStyle?.normalizedFontName
+              if (!norm) return null
+              // If we resolved to a known registry font, use its label
+              const resolved = resolveElementFontId(selected)
+              if (resolved !== 'helvetica' || norm.toLowerCase().includes('helvetica')) {
+                return FONT_REGISTRY[resolved].label
+              }
+              // Unsupported source font — show family part
+              const { family } = parseFontNameVariant(norm)
+              return family || 'Original PDF font'
+            })()
+            const hasUserFontOverride = !!selected.styleOverrides?.fontId
+
             return (
               <label className="field-label" style={{ gridColumn: '1 / -1' }}>
                 Font
+                {!hasUserFontOverride && sourceFontLabel && (
+                  <span style={{ fontSize: '11px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+                    Source: {sourceFontLabel}{isBold ? ' Bold' : ''}{isItalic ? ' Italic' : ''}
+                  </span>
+                )}
                 <select
                   className="text-input"
                   value={currentFontId}
@@ -60,7 +91,8 @@ export function PropertyPanel() {
                     const entry = FONT_REGISTRY[newFontId]
                     update(selected.id, {
                       fontId: newFontId,
-                      fontFamily: entry.label, // keep fontFamily in sync for old code paths
+                      fontFamily: entry.label,
+                      styleOverrides: { ...selected.styleOverrides, fontId: newFontId },
                     })
                   }}
                   style={{ fontFamily: getCssFontFamily(currentFontId) }}
@@ -84,13 +116,25 @@ export function PropertyPanel() {
               <div className="field-label" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ display: 'flex', gap: '4px', background: 'var(--surface-hover)', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
                   <button 
-                    className={`toolbar-btn ${selected.bold ? 'active' : ''}`}
-                    onClick={() => update(selected.id, { bold: !selected.bold })}
+                    className={`toolbar-btn ${resolveElementBold(selected) ? 'active' : ''}`}
+                    onClick={() => {
+                      const newBold = !resolveElementBold(selected)
+                      update(selected.id, {
+                        bold: newBold,
+                        styleOverrides: { ...selected.styleOverrides, bold: newBold },
+                      })
+                    }}
                     title="Bold"
                   ><Bold size={16} /></button>
                   <button 
-                    className={`toolbar-btn ${selected.italic ? 'active' : ''}`}
-                    onClick={() => update(selected.id, { italic: !selected.italic })}
+                    className={`toolbar-btn ${resolveElementItalic(selected) ? 'active' : ''}`}
+                    onClick={() => {
+                      const newItalic = !resolveElementItalic(selected)
+                      update(selected.id, {
+                        italic: newItalic,
+                        styleOverrides: { ...selected.styleOverrides, italic: newItalic },
+                      })
+                    }}
                     title="Italic"
                   ><Italic size={16} /></button>
                   <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />

@@ -1,8 +1,9 @@
 import { useRef, type PointerEvent } from 'react'
 import { useEditorStore } from '../../store/editor-store'
+import type { ImageElement, SignatureElement } from '../../types/editor'
 
 interface ResizableWrapperProps {
-  element: any // ImageElement | SignatureElement
+  element: ImageElement | SignatureElement
   zoom: number
   onSelect: (id: string) => void
   preserveAspectRatio?: boolean
