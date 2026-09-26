@@ -24,10 +24,16 @@ export async function extractNativeText(document: PDFDocumentProxy, pages: Edito
       }
       
       const lowerFontName = rawItem.fontName.toLowerCase()
-      if (lowerFontName.includes('bold')) {
+      const lowerFontFamily = fontFamily.toLowerCase()
+      if (lowerFontName.includes('bold') || lowerFontFamily.includes('bold')) {
         isBold = true
       }
-      if (lowerFontName.includes('italic') || lowerFontName.includes('oblique')) {
+      if (
+        lowerFontName.includes('italic') ||
+        lowerFontName.includes('oblique') ||
+        lowerFontFamily.includes('italic') ||
+        lowerFontFamily.includes('oblique')
+      ) {
         isItalic = true
       }
 
@@ -49,6 +55,10 @@ export async function extractNativeText(document: PDFDocumentProxy, pages: Edito
         color: '#1f2937',
         rotation: bounds.rotation,
         originalBounds: bounds,
+        sourceStyle: {
+          rawFontName: rawItem.fontName,
+          baselineY: bounds.baselineY,
+        },
         edited: false,
       })
     })

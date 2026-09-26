@@ -228,7 +228,10 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
           }
 
           // The first line baseline starts 1 fontSize from the top of the box.
-          const textY = pageHeight - element.y - element.fontSize - index * lineHeight
+          let textY = pageHeight - element.y - element.fontSize - index * lineHeight
+          if (element.sourceStyle?.baselineY !== undefined) {
+            textY = pageHeight - element.sourceStyle.baselineY - index * lineHeight
+          }
 
           // To rotate around the center of the text element:
           const cx = element.x + element.width / 2

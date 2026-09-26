@@ -58,6 +58,10 @@ export interface TextElement {
     url: string
   }
   deleted?: boolean
+  sourceStyle?: {
+    rawFontName: string
+    baselineY: number
+  }
 }
 
 export interface ImageElement {

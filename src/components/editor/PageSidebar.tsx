@@ -35,7 +35,7 @@ function Thumbnail({
     
     // Resolve the proxy to use
     let sourceProxy = pdf
-    let sourcePageIndex = page.kind === 'imported' ? page.sourcePageIndex : (page as any).sourcePageIndex
+    const sourcePageIndex = page.kind === 'imported' ? page.sourcePageIndex : (page as any).sourcePageIndex
 
     // Check if imported and from cache
     if (page.kind === 'imported') {
