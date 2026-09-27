@@ -17,6 +17,7 @@ import { MergePdfPage } from './pages/tools/MergePdfPage'
 import { SplitPdfPage } from './pages/tools/SplitPdfPage'
 import { CompressPdfPage } from './pages/tools/CompressPdfPage'
 import { ConvertPdfPage } from './pages/tools/ConvertPdfPage'
+import { BillingCallbackPage } from './pages/BillingCallbackPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
@@ -58,6 +59,7 @@ function App() {
               <Route path="/tools/convert" element={<ConvertPdfPage />} />
             </Route>
             <Route path="/documents/:documentId/edit" element={<EditorPage />} />
+            <Route path="/billing/callback" element={<BillingCallbackPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
