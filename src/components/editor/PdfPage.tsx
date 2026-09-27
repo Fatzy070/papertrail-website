@@ -12,8 +12,7 @@ import { useEditorStore } from '../../store/editor-store'
 import { pdfCache } from '../../engine/pdf-cache'
 import { getStroke } from 'perfect-freehand'
 import type { FontId } from '../../engine/font-registry'
-
-
+import { pageRectToCss } from '../../engine/coordinate-transformer'
 function getSvgPathFromStroke(stroke: number[][]) {
   if (!stroke.length) return ''
   const d = stroke.reduce(
@@ -267,7 +266,28 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
             )
           }
           if (element.type === 'text') {
-            if (element.deleted) return null;
+            if (element.deleted) {
+              if (element.source === 'pdf') {
+                const rect = pageRectToCss(element, page, zoom)
+                return (
+                  <div
+                    key={element.id}
+                    style={{
+                      position: 'absolute',
+                      left: rect.left,
+                      top: rect.top,
+                      width: rect.width,
+                      height: rect.height,
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      transform: `rotate(${rect.rotation}deg)`,
+                      transformOrigin: 'top left',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )
+              }
+              return null
+            }
             return (
               <TextOverlay
                 key={element.id}

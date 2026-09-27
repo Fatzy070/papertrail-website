@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body>
+<input type="file" id="file" />
+<script type="module">
+  import * as mupdf from 'mupdf';
+  import { PDFDocument } from 'pdf-lib';
+  import fontkit from '@pdf-lib/fontkit';
+
+  document.getElementById('file').addEventListener('change', async (e) => {
+    try {
+      const file = e.target.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+      
+      console.log("Original buffer size:", arrayBuffer.byteLength);
+      
+      const baseDoc = mupdf.Document.openDocument(arrayBuffer, 'application/pdf');
+      const doc = baseDoc.asPDF();
+      const page = doc.loadPage(0);
+      const annot = page.createAnnotation('Redact');
+      annot.setRect([100, 100, 200, 200]);
+      page.applyRedactions(false, 0, 0, 0);
+      page.update();
+      
+      const outBuf = doc.saveToBuffer("");
+      const mutationBase = new Uint8Array(outBuf.asUint8Array());
+      
+      console.log("MuPDF returned buffer of length", mutationBase.length);
+      
+      console.log("Loading into pdf-lib...");
+      const originalPdf = await PDFDocument.load(mutationBase);
+      console.log("Loaded originalPdf");
+      
+      const pdf = await PDFDocument.create();
+      pdf.registerFontkit(fontkit);
+      
+      const [copiedPage] = await pdf.copyPages(originalPdf, [0]);
+      pdf.addPage(copiedPage);
+      
+      console.log("Saving pdf-lib...");
+      const finalBytes = await pdf.save();
+      console.log("Success! size:", finalBytes.length);
+    } catch(err) {
+      console.error("ERROR:", err.message);
+      console.error(err.stack);
+    }
+  });
+</script>
+</body>
+</html>

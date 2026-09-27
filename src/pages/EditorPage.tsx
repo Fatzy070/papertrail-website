@@ -10,6 +10,7 @@ import { EditorToolbar } from '../components/editor/EditorToolbar'
 import { PdfPage } from '../components/editor/PdfPage'
 import { VersionHistory } from '../components/editor/VersionHistory'
 import { WatermarkModal } from '../components/editor/WatermarkModal'
+import { FindBar } from '../components/editor/FindBar'
 import { exportPdf } from '../engine/pdf-exporter'
 import { loadPdfDocument } from '../engine/pdf-loader'
 import { pdfCache } from '../engine/pdf-cache'
@@ -223,7 +224,7 @@ export function EditorPage() {
     try {
       const bytes = await generate()
       const url = URL.createObjectURL(
-        new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }),
+        new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'application/pdf' }),
       )
       const a = window.document.createElement('a')
       a.href = url
@@ -231,7 +232,7 @@ export function EditorPage() {
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (e) {
-      show(e instanceof Error ? e.message : 'Export failed.', 'error')
+      console.error(e); show(e instanceof Error ? e.message : 'Export failed.', 'error')
     }
   }
   async function save() {
@@ -240,12 +241,12 @@ export function EditorPage() {
       const bytes = await generate()
       await saveMutation.mutateAsync({
         id: documentId,
-        blob: new Blob([bytes.buffer as ArrayBuffer], {
+        blob: new Blob([bytes.slice().buffer as ArrayBuffer], {
           type: 'application/pdf',
         }),
       })
       console.log('[DEBUG] Calling markSaved')
-      markSaved(bytes.buffer as ArrayBuffer)
+      markSaved(bytes.slice().buffer as ArrayBuffer)
       console.log('[DEBUG] markSaved completed')
       show('Document saved.', 'success')
     } catch (e) {
@@ -311,7 +312,8 @@ export function EditorPage() {
             pdfInputRef.current?.click()
           }}
         />
-        <section className="pdf-workspace" aria-label="Document canvas">
+        <section className="pdf-workspace relative" aria-label="Document canvas">
+          <FindBar />
           <div className="pdf-pages">
             {(loading || metadata.isPending || fetching) && (
               <LoadingState label="Opening your PDF" />

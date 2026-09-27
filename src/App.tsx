@@ -10,9 +10,13 @@ import { SettingsPage } from './pages/SettingsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { AuthShell } from './components/auth/AuthShell'
 import { SupportPage } from './pages/SupportPage'
-import { WorkspacePlaceholderPage } from './pages/WorkspacePlaceholderPage'
+
 import { MainLayout } from './layouts/MainLayout'
 import { DocumentsPage } from './pages/DocumentsPage'
+import { MergePdfPage } from './pages/tools/MergePdfPage'
+import { SplitPdfPage } from './pages/tools/SplitPdfPage'
+import { CompressPdfPage } from './pages/tools/CompressPdfPage'
+import { ConvertPdfPage } from './pages/tools/ConvertPdfPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
@@ -48,10 +52,10 @@ function App() {
               <Route path="/recent" element={<DocumentsPage filter="recent" />} />
               <Route path="/starred" element={<DocumentsPage filter="starred" />} />
               <Route path="/trash" element={<DocumentsPage filter="trash" />} />
-              <Route path="/tools/merge" element={<WorkspacePlaceholderPage />} />
-              <Route path="/tools/split" element={<WorkspacePlaceholderPage />} />
-              <Route path="/tools/compress" element={<WorkspacePlaceholderPage />} />
-              <Route path="/tools/convert" element={<WorkspacePlaceholderPage />} />
+              <Route path="/tools/merge" element={<MergePdfPage />} />
+              <Route path="/tools/split" element={<SplitPdfPage />} />
+              <Route path="/tools/compress" element={<CompressPdfPage />} />
+              <Route path="/tools/convert" element={<ConvertPdfPage />} />
             </Route>
             <Route path="/documents/:documentId/edit" element={<EditorPage />} />
           </Route>

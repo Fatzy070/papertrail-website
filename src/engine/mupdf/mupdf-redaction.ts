@@ -58,11 +58,7 @@ export async function applyMuPdfRedactions(
         }
         
         // Apply all Redact annotations on the page.
-        // false: no black_boxes
-        // 0: REDACT_IMAGE_NONE
-        // 0: REDACT_LINE_ART_NONE
-        // 0: REDACT_TEXT_REMOVE
-        page.applyRedactions(false, 0, 0, 0)
+        page.applyRedactions()
         page.update()
       } finally {
         if (page) {
@@ -73,7 +69,7 @@ export async function applyMuPdfRedactions(
     }
     
     const outBuf = doc.saveToBuffer("")
-    return outBuf.asUint8Array()
+    return new Uint8Array(outBuf.asUint8Array())
   } finally {
     // There isn't a direct explicit close in the JS bindings (they rely on JS GC usually).
     // Let's rely on standard GC or internal cleanup.
