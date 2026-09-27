@@ -22,7 +22,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className="app-dialog"
+      className=" md:w-[50%] m-auto p-6 border border-[var(--border)] rounded-[17px] bg-[var(--surface-raised)] text-[var(--text)] shadow-[var(--shadow-lg)] backdrop:bg-[#090d148f] backdrop:backdrop-blur-[4px]"
       aria-labelledby={id}
       onCancel={(event) => {
         event.preventDefault()
@@ -32,17 +32,17 @@ export function Dialog({
         if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div className="dialog-heading">
-        <h2 id={id}>{title}</h2>
+      <div className="flex items-center justify-between gap-[15px]">
+        <h2 id={id} className="m-0 text-[19px] tracking-[-0.02em]">{title}</h2>
         <button
-          className="icon-button"
+          className="inline-flex items-center justify-center w-[34px] h-[34px] p-0 rounded-[9px] bg-transparent text-[var(--muted)] font-[650] cursor-pointer transition-colors duration-150 hover:bg-[var(--surface-hover)] hover:text-[var(--text)] border-0"
           aria-label="Close dialog"
           onClick={onClose}
         >
           <X size={18} />
         </button>
       </div>
-      {description && <p className="muted dialog-description">{description}</p>}
+      {description && <p className="mt-2 mb-[22px] text-[12px] leading-[1.6] text-[var(--muted)]">{description}</p>}
       {children}
     </dialog>
   )

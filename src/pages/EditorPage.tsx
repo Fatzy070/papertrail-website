@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PageSidebar } from '../components/editor/PageSidebar'
 import { PropertyPanel } from '../components/editor/PropertyPanel'
 import { Dialog } from '../components/ui/Dialog'
@@ -19,9 +19,12 @@ import { usePdfEditor } from '../hooks/use-pdf-editor'
 import { useEditorStore } from '../store/editor-store'
 import { useToastStore } from '../store/toast-store'
 import { useEditorKeyboardShortcuts } from '../hooks/use-editor-keyboard-shortcuts'
+import { useBillingStatus } from '../hooks/use-billing'
+import { ExportGateModal } from '../components/billing/ExportGateModal'
 
 export function EditorPage() {
   const { documentId = '' } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const metadata = useDocument(documentId)
   const saveMutation = useSaveDocument()
@@ -33,15 +36,32 @@ export function EditorPage() {
   const document = useEditorStore((s) => s.document)
   const elements = useEditorStore((s) => s.elements)
   const dirty = useEditorStore((s) => s.dirty)
+  const watermark = useEditorStore((s) => s.watermark)
   const markSaved = useEditorStore((s) => s.markSaved)
   const reset = useEditorStore((s) => s.reset)
   const show = useToastStore((s) => s.show)
   const [activePage, setActivePage] = useState(0)
   const [leaving, setLeaving] = useState(false)
   const [showWatermarkModal, setShowWatermarkModal] = useState(false)
+  const [showExportGate, setShowExportGate] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const importTargetIndexRef = useRef<number>(0)
+  const { data: billing } = useBillingStatus(documentId)
+
+  // Auto-download after returning from payment callback
+  const autoDownloadFired = useRef(false)
+  useEffect(() => {
+    if (autoDownloadFired.current) return
+    if (!searchParams.get('autoDownload')) return
+    if (!billing) return
+    if (!billing.canExport) return
+    autoDownloadFired.current = true
+    // Remove the query param so a refresh doesn't re-trigger
+    setSearchParams((prev) => { prev.delete('autoDownload'); return prev }, { replace: true })
+    void download()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billing, searchParams])
 
   useEditorKeyboardShortcuts()
 
@@ -218,9 +238,14 @@ export function EditorPage() {
   }, [])
   async function generate() {
     if (!document) throw new Error('No PDF is open.')
-    return exportPdf(document, elements)
+    return exportPdf({ ...document, watermark }, elements)
   }
   async function download() {
+    if (!billing?.canExport) {
+      setShowExportGate(true)
+      return
+    }
+    
     try {
       const bytes = await generate()
       const url = URL.createObjectURL(
@@ -390,6 +415,13 @@ export function EditorPage() {
             useEditorStore.getState().setWatermark(undefined)
             setShowWatermarkModal(false)
           }}
+        />
+      )}
+      {showExportGate && (
+        <ExportGateModal
+          documentId={documentId}
+          documentName={document?.name}
+          onClose={() => setShowExportGate(false)}
         />
       )}
     </main>
