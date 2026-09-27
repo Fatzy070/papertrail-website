@@ -81,7 +81,7 @@ function mupdfColorToHex(color: number[]): string {
  * Walk MuPDF StructuredText for all pages and collect per-character span
  * data, grouping consecutive characters that share the same font.
  */
-function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
+export function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
   const spans: MuPdfSpan[] = []
 
   try {
@@ -331,13 +331,26 @@ export async function enrichTextElementsWithMuPDF(
       candidates.push({ span, score: overlapRatio })
     }
 
-    // Confidence threshold: exactly one candidate must survive
-    if (candidates.length !== 1) {
-      // Zero → no match; >1 → ambiguous. Either way, skip.
-      continue
+    // Confidence threshold: exactly one candidate must survive, or all surviving candidates
+    // must completely agree on font metadata (this happens when PDF.js merges words but MuPDF doesn't).
+    if (candidates.length === 0) continue
+
+    let span = candidates[0].span
+    if (candidates.length > 1) {
+      // Check if all candidates agree on the font metadata
+      const first = candidates[0].span
+      const allAgree = candidates.every(c => 
+        c.span.fontName === first.fontName &&
+        c.span.isBold === first.isBold &&
+        c.span.isItalic === first.isItalic
+      )
+      
+      if (!allAgree) {
+        continue // Ambiguous font matching
+      }
+      // If they all agree, it's safe to use the first one's metadata
     }
 
-    const { span } = candidates[0]
     const normalizedFontName = normalizePdfFontName(span.fontName)
 
     // Enrich sourceStyle — never overwrite baselineY

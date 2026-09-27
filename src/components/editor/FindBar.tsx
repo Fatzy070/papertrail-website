@@ -70,11 +70,12 @@ export function FindBar() {
   }
 
   return (
-    <div 
-      className="absolute top-4 right-4 z-50 flex items-center bg-white shadow-lg rounded-md border border-gray-200 p-2 text-sm text-gray-700"
-      style={{ width: '300px' }}
-    >
-      <div className="flex-1 flex items-center bg-gray-50 rounded px-2 py-1 border border-gray-300">
+    <div className="sticky top-4 z-50 w-full h-0 flex justify-end px-4 pointer-events-none" style={{ marginTop: '16px' }}>
+      <div 
+        className="flex items-center bg-white shadow-lg rounded-md border border-gray-200 p-2 text-sm text-gray-700 pointer-events-auto"
+        style={{ width: '300px' }}
+      >
+        <div className="flex-1 flex items-center bg-gray-50 rounded px-2 py-1 border border-gray-300">
         <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
@@ -124,6 +125,7 @@ export function FindBar() {
           ×
         </button>
       </div>
+    </div>
     </div>
   )
 }
