@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useEditorStore } from '../store/editor-store'
+import { useSearchStore } from '../store/search-store'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!target) return false
@@ -81,7 +82,31 @@ export function useEditorKeyboardShortcuts() {
           if (isEditableTarget(event.target)) return
           useEditorStore.getState().paste()
         }
+        if (event.key.toLowerCase() === 'f') {
+          // Ctrl/Cmd + F -> Open Find Bar
+          // We always want to intercept this in the editor unless it's explicitly disabled.
+          // Native browser find is unreliable for canvas/overlays.
+          event.preventDefault()
+          const searchStore = useSearchStore.getState()
+          if (!searchStore.isOpen) {
+             searchStore.setOpen(true)
+          } else {
+             const input = document.querySelector('input[aria-label="Search query"]') as HTMLInputElement
+             if (input) {
+               input.focus()
+               input.select()
+             }
+          }
+        }
       } else if (!modifier) {
+        if (event.key === 'Escape') {
+           const searchStore = useSearchStore.getState()
+           if (searchStore.isOpen) {
+             event.preventDefault()
+             searchStore.setOpen(false)
+           }
+        }
+
         // Arrow key nudging
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
           if (isEditableTarget(event.target)) return

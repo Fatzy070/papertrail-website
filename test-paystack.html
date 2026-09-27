@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Paystack PDF</title>
+</head>
+<body>
+  <h1>Test Paystack PDF</h1>
+  <input type="file" id="file" />
+  <button id="btn-no-edit">Run No Edit</button>
+  <button id="btn-delete">Run Delete</button>
+  <button id="btn-replace">Run Replace</button>
+  <pre id="log"></pre>
+  
+  <script type="module">
+    import { PDFDocument } from 'pdf-lib'
+    import fontkit from '@pdf-lib/fontkit'
+    import * as mupdf from 'mupdf'
+
+    function log(msg) {
+      document.getElementById('log').textContent += msg + '\n';
+      console.log(msg);
+    }
+    window.log = log;
+
+    window.processPDF = async (mode) => {
+      try {
+        const file = document.getElementById('file').files[0];
+        if (!file) return log("No file selected");
+        
+        log(`--- Running Mode: ${mode} ---`);
+        const arrayBuffer = await file.arrayBuffer();
+        
+        let mutationBase = new Uint8Array(arrayBuffer);
+        
+        if (mode === 'delete' || mode === 'replace') {
+          log("Redacting...");
+          const baseDoc = mupdf.Document.openDocument(arrayBuffer, 'application/pdf');
+          const doc = baseDoc.asPDF();
+          const page = doc.loadPage(0);
+          
+          if (mode === 'delete' || mode === 'replace') {
+            const annot = page.createAnnotation('Redact');
+            // generic rect
+            annot.setRect([50, 50, 200, 100]);
+            page.applyRedactions(true);
+          }
+          page.update();
+          const outBuf = doc.saveToBuffer("");
+          const rawBytes = outBuf.asUint8Array();
+          // FORCE clean copy
+          mutationBase = new Uint8Array(rawBytes.length);
+          mutationBase.set(rawBytes);
+          
+          log("Mutation base length: " + mutationBase.length);
+        }
+
+        log("Loading originalPdf in pdf-lib...");
+        const originalPdf = await PDFDocument.load(mutationBase);
+        
+        log("Creating new PDF...");
+        const pdf = await PDFDocument.create();
+        pdf.registerFontkit(fontkit);
+        
+        log("Copying pages...");
+        for (let i = 0; i < originalPdf.getPageCount(); i++) {
+           const [copiedPage] = await pdf.copyPages(originalPdf, [i]);
+           pdf.addPage(copiedPage);
+        }
+        
+        log("Saving PDF...");
+        const finalBytes = await pdf.save(); 
+        window.finalBytes = finalBytes;
+        log(`Success! size: ${finalBytes.length}`);
+        
+        return "SUCCESS";
+      } catch (e) {
+        log("ERROR: " + e.message);
+        log(e.stack);
+        return "ERROR: " + e.message;
+      }
+    };
+    
+    document.getElementById('btn-no-edit').onclick = () => window.processPDF('no-edit');
+    document.getElementById('btn-delete').onclick = () => window.processPDF('delete');
+    document.getElementById('btn-replace').onclick = () => window.processPDF('replace');
+  </script>
+</body>
+</html>

@@ -216,7 +216,10 @@ export function PropertyPanel() {
                   onChange={(e) => {
                     const value = +e.target.value
                     if (value > 0 && value <= 200)
-                      update(selected.id, { fontSize: value })
+                      update(selected.id, {
+                        fontSize: value,
+                        styleOverrides: { ...selected.styleOverrides, fontSize: value },
+                      })
                   }}
                 />
               </label>
@@ -240,7 +243,12 @@ export function PropertyPanel() {
                 Color
                 <ColorPicker
                   color={selected.color}
-                  onChange={(color) => update(selected.id, { color })}
+                  onChange={(color) =>
+                    update(selected.id, {
+                      color,
+                      styleOverrides: { ...selected.styleOverrides, color },
+                    })
+                  }
                 />
               </div>
             </div>

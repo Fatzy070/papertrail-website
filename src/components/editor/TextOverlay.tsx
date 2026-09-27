@@ -3,8 +3,10 @@ import type { TextElement } from '../../types/editor'
 import { pageRectToCss } from '../../engine/coordinate-transformer'
 import { useEditorStore } from '../../store/editor-store'
 import { measureTextElement, measureTextHeight } from '../../engine/text-measurement'
-import { resolveElementFontId, resolveElementBold, resolveElementItalic, getCssFontFamily } from '../../engine/font-registry'
+import { resolveElementFontId, resolveElementBold, resolveElementItalic, resolveElementColor, getCssFontFamily } from '../../engine/font-registry'
 import type { EditorPage } from '../../types/editor'
+import { useSearchStore } from '../../store/search-store'
+import { useSearchResults } from '../../hooks/use-search-results'
 
 interface Props {
   element: TextElement
@@ -26,6 +28,14 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
 
   const isPdfText = element.source === 'pdf'
   const isUserText = element.source === 'user'
+  
+  // Search state
+  const searchResults = useSearchResults()
+  const activeMatchIndex = useSearchStore((s) => s.activeMatchIndex)
+  
+  const elementMatches = searchResults.filter(r => r.elementId === element.id)
+  const isMatch = elementMatches.length > 0
+  const isActiveMatch = isMatch && activeMatchIndex >= 0 && searchResults[activeMatchIndex]?.elementId === element.id
 
   // isEditing: only changed from event handlers, never from useEffect (satisfies react-hooks/set-state-in-effect).
   // Initialized from props: fresh user text auto-starts in editing mode.
@@ -36,6 +46,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   const cssFontFamily = getCssFontFamily(fontId)
   const effectiveBold = resolveElementBold(element)
   const effectiveItalic = resolveElementItalic(element)
+  const effectiveColor = resolveElementColor(element)
 
   // Interaction rules:
   //  - PDF text: interactive only in edit-text mode
@@ -236,9 +247,9 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
     fontStyle: effectiveItalic ? 'italic' : 'normal',
     textAlign: element.textAlign ?? 'left',
     color:
-      element.link && (element.color === '#1f2937' || element.color === '#000000')
+      element.link && (effectiveColor === '#1f2937' || effectiveColor === '#000000')
         ? '#2563eb'
-        : element.color,
+        : effectiveColor,
     textDecoration: element.link ? 'underline' : 'none',
     lineHeight: element.lineHeight ?? 1.2,
   }
@@ -257,6 +268,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   return (
     <div
       data-text-element
+      data-element-id={element.id}
       tabIndex={0}
       role="button"
       aria-label={`Text: ${element.text || '(empty)'}`}
@@ -270,10 +282,12 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         transformOrigin: 'top left',
         pointerEvents: allowInteraction ? 'auto' : 'none',
         userSelect: 'none',
-        outline: selected ? '1.5px solid var(--primary, #2563eb)' : '1px solid transparent',
-        borderRadius: 1,
-        boxShadow: selected ? '0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent)' : undefined,
+        outline: isActiveMatch ? '2px solid rgba(250, 204, 21, 0.9)' : selected ? '1.5px solid var(--primary, #2563eb)' : '1px solid transparent',
+        backgroundColor: isActiveMatch ? 'rgba(250, 204, 21, 0.5)' : isMatch ? 'rgba(250, 204, 21, 0.2)' : 'transparent',
+        borderRadius: 2,
+        boxShadow: selected && !isActiveMatch ? '0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent)' : undefined,
         cursor: isUserText && activeTool === 'pointer' ? (selected ? 'move' : 'pointer') : 'default',
+        transition: 'background-color 0.15s ease-in-out, outline 0.15s ease-in-out'
       }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -300,9 +314,18 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
           value={element.text}
           onChange={handleTextChange}
           onBlur={() => {
-            if (!element.text.trim() && isUserText) {
-              remove()
+            if (!element.text.trim()) {
+              if (isUserText) {
+                remove()
+              } else if (isPdfText) {
+                update(element.id, { deleted: true, text: '', edited: true })
+                useEditorStore.getState().selectElement(null)
+                setIsEditing(false)
+              }
             } else {
+              if (isPdfText && element.text === element.originalText) {
+                update(element.id, { edited: false, deleted: false })
+              }
               setIsEditing(false)
             }
           }}

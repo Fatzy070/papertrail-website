@@ -50,10 +50,10 @@ export const FONT_REGISTRY: Record<FontId, FontEntry> = {
     cssFamily: 'Inter',
     isStandard: false,
     urls: {
-      regular: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2',
-      bold:    'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hiJ-Ek-_EeA.woff2',
-      italic:  'https://fonts.gstatic.com/s/inter/v13/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dphjZ-Ek-_EeA6eUA.woff2',
-      boldItalic: 'https://fonts.gstatic.com/s/inter/v13/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dphjZ-Ek-_EeA6eUA.woff2',
+      regular: 'https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZhrj72A.ttf',
+      bold:    'https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZhrj72A.ttf',
+      italic:  'https://fonts.gstatic.com/s/inter/v20/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dthjZ-Ck-8.ttf',
+      boldItalic: 'https://fonts.gstatic.com/s/inter/v20/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTcPtxhjZ-Ck-8.ttf',
     },
   },
   roboto: {
@@ -61,10 +61,10 @@ export const FONT_REGISTRY: Record<FontId, FontEntry> = {
     cssFamily: 'Roboto',
     isStandard: false,
     urls: {
-      regular:   'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
-      bold:      'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
-      italic:    'https://fonts.gstatic.com/s/roboto/v30/KFOkCnqEu92Fr1Mu51xIIzIXKMny.woff2',
-      boldItalic:'https://fonts.gstatic.com/s/roboto/v30/KFOjCnqEu92Fr1Mu51TzBic6CsQ.woff2',
+      regular:   'https://fonts.gstatic.com/s/roboto/v51/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbWmTgg3Wlg.ttf',
+      bold:      'https://fonts.gstatic.com/s/roboto/v51/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWuYjammTgg3Wlg.ttf',
+      italic:    'https://fonts.gstatic.com/s/roboto/v51/KFOKCnqEu92Fr1Mu53ZEC9_Vu3r1gIhOszmOClHrs6ljXfMMLoHQiA_0lFQm.ttf',
+      boldItalic:'https://fonts.gstatic.com/s/roboto/v51/KFOKCnqEu92Fr1Mu53ZEC9_Vu3r1gIhOszmOClHrs6ljXfMMLmbXiA_0lFQm.ttf',
     },
   },
   openSans: {
@@ -72,10 +72,10 @@ export const FONT_REGISTRY: Record<FontId, FontEntry> = {
     cssFamily: '"Open Sans"',
     isStandard: false,
     urls: {
-      regular:   'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0C24tA.woff2',
-      bold:      'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B24tA.woff2',
-      italic:    'https://fonts.gstatic.com/s/opensans/v40/memQYaGs126MiZpBA-UFUIcVXSCEkx2cmqvXlWq8tWZ0Pw86hbd0Rw.woff2',
-      boldItalic:'https://fonts.gstatic.com/s/opensans/v40/memQYaGs126MiZpBA-UFUIcVXSCEkx2cmqvXlWq8tWZ0Pw86hbd0Rw.woff2',
+      regular:   'https://fonts.gstatic.com/s/opensans/v44/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0C4nY1U2xQ.ttf',
+      bold:      'https://fonts.gstatic.com/s/opensans/v44/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1y4nY1U2xQ.ttf',
+      italic:    'https://fonts.gstatic.com/s/opensans/v44/memQYaGs126MiZpBA-UFUIcVXSCEkx2cmqvXlWq8tWZ0Pw86hd0Rk8ZkaVcUx6EQ.ttf',
+      boldItalic:'https://fonts.gstatic.com/s/opensans/v44/memQYaGs126MiZpBA-UFUIcVXSCEkx2cmqvXlWq8tWZ0Pw86hd0RkyFjaVcUx6EQ.ttf',
     },
   },
   montserrat: {
@@ -83,10 +83,10 @@ export const FONT_REGISTRY: Record<FontId, FontEntry> = {
     cssFamily: 'Montserrat',
     isStandard: false,
     urls: {
-      regular:   'https://fonts.gstatic.com/s/montserrat/v26/JTUSjIg1_i6t8kCHKm459WlhyyTh89Y.woff2',
-      bold:      'https://fonts.gstatic.com/s/montserrat/v26/JTUSjIg1_i6t8kCHKm459WlhyiTh89Y.woff2',
-      italic:    'https://fonts.gstatic.com/s/montserrat/v26/JTUQjIg1_i6t8kCHKm459WxhyyTh89ZNpQ.woff2',
-      boldItalic:'https://fonts.gstatic.com/s/montserrat/v26/JTUPjIg1_i6t8kCHKm459WxZYgzz8fZwnCo.woff2',
+      regular:   'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Ew-Y31cow.ttf',
+      bold:      'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM70w-Y31cow.ttf',
+      italic:    'https://fonts.gstatic.com/s/montserrat/v31/JTUFjIg1_i6t8kCHKm459Wx7xQYXK0vOoz6jq6R9aX9-obK4.ttf',
+      boldItalic:'https://fonts.gstatic.com/s/montserrat/v31/JTUFjIg1_i6t8kCHKm459Wx7xQYXK0vOoz6jq0N6aX9-obK4.ttf',
     },
   },
   lato: {
@@ -94,10 +94,10 @@ export const FONT_REGISTRY: Record<FontId, FontEntry> = {
     cssFamily: 'Lato',
     isStandard: false,
     urls: {
-      regular:   'https://fonts.gstatic.com/s/lato/v24/S6uyw4BMUTPHjx4wXg.woff2',
-      bold:      'https://fonts.gstatic.com/s/lato/v24/S6u9w4BMUTPHh6UVSwiPGQ3q5d0.woff2',
-      italic:    'https://fonts.gstatic.com/s/lato/v24/S6u8w4BMUTPHjxsAXC-v.woff2',
-      boldItalic:'https://fonts.gstatic.com/s/lato/v24/S6u_w4BMUTPHjxsI5wq_Gwftx9897g.woff2',
+      regular:   'https://fonts.gstatic.com/s/lato/v25/S6uyw4BMUTPHvxk6WQev.ttf',
+      bold:      'https://fonts.gstatic.com/s/lato/v25/S6u9w4BMUTPHh6UVew-FHi_o.ttf',
+      italic:    'https://fonts.gstatic.com/s/lato/v25/S6u8w4BMUTPHjxswWyWtFCc.ttf',
+      boldItalic:'https://fonts.gstatic.com/s/lato/v25/S6u_w4BMUTPHjxsI5wqPHA3q5d0.ttf',
     },
   },
   /**
@@ -110,10 +110,10 @@ export const FONT_REGISTRY: Record<FontId, FontEntry> = {
     cssFamily: '"Liberation Sans", Arial, Helvetica, sans-serif',
     isStandard: false,
     urls: {
-      regular:    'https://fonts.gstatic.com/s/liberationsans/v1/s3f0QkovK-P_JkTKi0HPKH7NfhgAbQ.woff2',
-      bold:       'https://fonts.gstatic.com/s/liberationsans/v1/s3f1QkovK-P_JkTKi0HPKH7VfhgAnA7dl0.woff2',
-      italic:     'https://fonts.gstatic.com/s/liberationsans/v1/s3f2QkovK-P_JkTKi0HPKHlvFoJEpA.woff2',
-      boldItalic: 'https://fonts.gstatic.com/s/liberationsans/v1/s3f3QkovK-P_JkTKi0HPKHlvFoJEnCQ7dg.woff2',
+      regular:    '/fonts/arimo-regular.ttf',
+      bold:       '/fonts/arimo-bold.ttf',
+      italic:     '/fonts/arimo-italic.ttf',
+      boldItalic: '/fonts/arimo-bold-italic.ttf',
     },
   },
   helvetica: {
@@ -353,4 +353,21 @@ export async function fetchFontBytes(fontId: FontId, variant: FontVariant): Prom
     console.warn(`[font-registry] Failed to fetch ${fontId} ${variant} from ${url}`)
     return null
   }
+}
+
+/**
+ * Determine the color to use for rendering/export of a TextElement.
+ *
+ * Priority: styleOverrides.color > sourceStyle.color > element.color
+ */
+export function resolveElementColor(
+  element: {
+    color: string
+    styleOverrides?: { color?: string }
+    sourceStyle?: { color?: string }
+  }
+): string {
+  if (element.styleOverrides?.color) return element.styleOverrides.color
+  if (element.sourceStyle?.color) return element.sourceStyle.color
+  return element.color
 }

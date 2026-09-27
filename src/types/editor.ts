@@ -77,6 +77,8 @@ export interface TextElement {
     isMono?: boolean
     /** From MuPDF font.isSerif() */
     isSerif?: boolean
+    /** Extracted color from MuPDF in hex format (e.g. "#000000") */
+    color?: string
   }
   /** Explicit formatting changes made by the user in the Properties panel.
    *  These always win over auto-enriched source metadata. */
