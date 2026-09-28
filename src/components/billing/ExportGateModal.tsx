@@ -9,9 +9,27 @@ const PENDING_EXPORT_KEY = 'papertrail_pending_export';
 
 type PlanId = 'single' | 'pro';
 
-const plans = [
+interface Feature {
+  text: string;
+  subtext?: string;
+}
+
+interface Plan {
+  id: PlanId;
+  title: string;
+  icon: typeof Download;
+  price: string;
+  priceSuffix: string;
+  priceSubtitle: string;
+  features: Feature[];
+  buttonText: string;
+  badge: string | null;
+  orderClass: string;
+}
+
+const plans: Plan[] = [
   {
-    id: 'single' as PlanId,
+    id: 'single',
     title: 'One-Time Export',
     icon: Download,
     price: '₦500',
@@ -28,7 +46,7 @@ const plans = [
     orderClass: 'order-2 md:order-1',
   },
   {
-    id: 'pro' as PlanId,
+    id: 'pro',
     title: 'Papertrail Pro',
     icon: Crown,
     price: '₦5,000',

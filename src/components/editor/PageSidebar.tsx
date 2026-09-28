@@ -65,6 +65,7 @@ function Thumbnail({
   }, [pdf, page])
   return <canvas ref={ref} />
 }
+
 export function PageSidebar({
   pdf,
   pages,
@@ -78,11 +79,55 @@ export function PageSidebar({
   onSelect: (index: number) => void
   onImportFromFile: (index: number) => void
 }) {
+  // Insertion index for the top-level Add Pages button: append after last page
+  const insertIndex = Math.max(0, pages.length - 1)
+  const lastPage = pages[insertIndex]
+
   return (
     <aside className="page-sidebar">
-      <div className="panel-heading">
-        Pages <span className="count-badge">{pages.length}</span>
+      {/* ── Sticky header with page count + Add Pages ── */}
+      <div className="panel-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'sticky', top: 0, zIndex: 10, background: 'var(--sidebar-bg, #f8f9fa)' }}>
+        <span>Pages <span className="count-badge">{pages.length}</span></span>
+
+        {/* Add pages dropdown — group-hover pattern preserved */}
+        <div className="relative group/addpages">
+          <button
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 whitespace-nowrap shadow-sm"
+            title="Add pages"
+            aria-haspopup="true"
+          >
+            + Add pages <span className="text-[10px]">▾</span>
+          </button>
+          <div className="absolute top-full left-0 mt-1 hidden group-hover/addpages:block bg-white border border-gray-200 rounded shadow-lg min-w-max py-1 z-20">
+            <button
+              className="w-full text-left px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+              onClick={(e) => {
+                e.stopPropagation()
+                useEditorStore.getState().addPage(insertIndex, {
+                  id: crypto.randomUUID(),
+                  kind: 'blank',
+                  width: lastPage?.width ?? 595,
+                  height: lastPage?.height ?? 842,
+                  rotation: 0,
+                })
+              }}
+            >
+              Blank page
+            </button>
+            <button
+              className="w-full text-left px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+              onClick={(e) => {
+                e.stopPropagation()
+                onImportFromFile(insertIndex)
+              }}
+            >
+              From file
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* ── Scrollable thumbnail list ── */}
       <div className="thumbnail-list">
         {pages.map((page, i) => (
           <div 
@@ -144,40 +189,6 @@ export function PageSidebar({
                   ✕
                 </button>
               )}
-            </div>
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10 group/dropdown">
-              <button 
-                className="bg-blue-600 text-white rounded-full px-2 py-1 shadow-lg hover:bg-blue-700 text-xs whitespace-nowrap flex items-center gap-1"
-                title="Add pages"
-              >
-                + Add pages <span className="text-[10px]">▾</span>
-              </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover/dropdown:block bg-white border border-gray-200 rounded shadow-lg min-w-max py-1">
-                <button
-                  className="w-full text-left px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    useEditorStore.getState().addPage(i, {
-                      id: crypto.randomUUID(),
-                      kind: 'blank',
-                      width: page.width,
-                      height: page.height,
-                      rotation: 0
-                    })
-                  }}
-                >
-                  Blank page
-                </button>
-                <button
-                  className="w-full text-left px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onImportFromFile(i)
-                  }}
-                >
-                  From file
-                </button>
-              </div>
             </div>
           </div>
         ))}
