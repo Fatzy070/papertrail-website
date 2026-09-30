@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom'
 import { ToolCatalog } from '../components/tools/ToolCatalog'
 import { Brand } from '../components/ui/Brand'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { useCurrentUser } from '../hooks/use-auth'
 
 type Feature = {
   icon: LucideIcon
@@ -110,6 +111,8 @@ export function LandingPage() {
 }
 
 function LandingHeader() {
+  const { data: user, isPending } = useCurrentUser()
+
   return (
     <header className="landing-header">
       <Link to="/" aria-label="Papertrail home">
@@ -124,16 +127,28 @@ function LandingHeader() {
 
       <div className="landing-header-actions">
         <ThemeToggle />
-        <Link to="/login" className="text-link">Sign in</Link>
-        <Link to="/register" className="primary-button">
-          Get started <ArrowUpRight size={15} />
-        </Link>
+        {isPending ? (
+          <div className="skeleton" style={{ width: 140, height: 38, borderRadius: 20 }} />
+        ) : user ? (
+          <Link to="/documents" className="primary-button">
+            Go to dashboard <ArrowUpRight size={15} />
+          </Link>
+        ) : (
+          <>
+            <Link to="/login" className="text-link">Sign in</Link>
+            <Link to="/register" className="primary-button hide-on-mobile">
+              Get started <ArrowUpRight size={15} />
+            </Link>
+          </>
+        )}
       </div>
     </header>
   )
 }
 
 function Hero({ reducedMotion }: { reducedMotion: boolean | null }) {
+  const { data: user, isPending } = useCurrentUser()
+
   return (
     <section className="landing-hero">
       <motion.div
@@ -149,9 +164,17 @@ function Hero({ reducedMotion }: { reducedMotion: boolean | null }) {
           and get back to the work that matters.
         </p>
         <div className="hero-actions">
-          <Link to="/register" className="primary-button">
-            Start editing for free <ArrowRight size={17} />
-          </Link>
+          {isPending ? (
+            <div className="skeleton" style={{ width: 180, height: 48, borderRadius: 24 }} />
+          ) : user ? (
+            <Link to="/documents" className="primary-button">
+              Open your workspace <ArrowRight size={17} />
+            </Link>
+          ) : (
+            <Link to="/register" className="primary-button">
+              Start editing for free <ArrowRight size={17} />
+            </Link>
+          )}
           <a href="#editor" className="text-link">
             Take a closer look <ArrowUpRight size={16} />
           </a>
@@ -307,23 +330,31 @@ function PricingCard({ plan }: { plan: Plan }) {
 }
 
 function FinalCallToAction() {
+  const { data: user, isPending } = useCurrentUser()
+
   return (
     <section className="landing-cta">
       <p className="eyebrow">THE NEXT PAGE IS YOURS</p>
       <h2>Make something<br /><em>ready to send.</em></h2>
-      <Link className="primary-button" to="/register">
-        Open your workspace <ArrowRight size={17} />
-      </Link>
+      {isPending ? (
+        <div className="skeleton" style={{ width: 180, height: 48, borderRadius: 24, margin: '0 auto' }} />
+      ) : (
+        <Link className="primary-button" to={user ? "/documents" : "/register"}>
+          Open your workspace <ArrowRight size={17} />
+        </Link>
+      )}
     </section>
   )
 }
 
 function LandingFooter() {
+  const { data: user, isPending } = useCurrentUser()
+
   return (
     <footer className="landing-footer">
       <Brand />
       <span>Your document workspace.</span>
-      <Link to="/login">Sign in</Link>
+      {!user && !isPending && <Link to="/login">Sign in</Link>}
       <Link to="/support">Help & feedback</Link>
       <a href="#pricing">Pricing</a>
     </footer>
