@@ -17,10 +17,13 @@ import {
   FileSignature,
   StickyNote,
   TextCursorInput,
-  Stamp
+  Stamp,
+  PanelsTopLeft,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
 import { ThemeToggle } from '../ui/ThemeToggle'
+import { FindBar } from './FindBar'
 
 interface Props {
   onBack: () => void
@@ -29,6 +32,8 @@ interface Props {
   onVersions: () => void
   onImageClick: () => void
   onWatermarkClick: () => void
+  onPagesClick: () => void
+  onPropertiesClick: () => void
   saving: boolean
   saveError: boolean
 }
@@ -40,6 +45,8 @@ export function EditorToolbar({
   onVersions,
   onImageClick,
   onWatermarkClick,
+  onPagesClick,
+  onPropertiesClick,
   saving,
   saveError,
 }: Props) {
@@ -75,6 +82,9 @@ export function EditorToolbar({
           </span>
         </div>
         <div className="topbar-actions">
+          <button className="icon-button mobile-editor-action" onClick={onPagesClick} aria-label="Open pages" title="Pages"><PanelsTopLeft size={18} /></button>
+          <button className="icon-button mobile-editor-action" onClick={onPropertiesClick} aria-label="Open properties" title="Properties"><SlidersHorizontal size={18} /></button>
+          <FindBar />
           <ThemeToggle />
           <button
             className="toolbar-button"

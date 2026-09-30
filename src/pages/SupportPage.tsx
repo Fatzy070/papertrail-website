@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { type SupportTicketCategory } from '../api/support-tickets.api'
 import { useCreateSupportTicket, useMySupportTickets } from '../hooks/use-support-tickets'
 import { useToastStore } from '../store/toast-store'
+import { AccountNavigation } from '../components/ui/AccountNavigation'
 
 const categories: Array<{ value: SupportTicketCategory; label: string }> = [
   { value: 'GENERAL', label: 'General question' },
@@ -42,6 +43,7 @@ export function SupportPage() {
   return (
     <>
         <div className="workspace-content support-page">
+          <AccountNavigation support />
           <Link className="text-link" to="/dashboard"><ArrowLeft size={15} /> Back to home</Link>
           <header className="workspace-heading support-heading">
             <div><div className="eyebrow"><CircleHelp size={15} /> Help &amp; Feedback</div><h1>How can we help?</h1><p className="muted">Send our support team a message and we&apos;ll get back to you.</p></div>

@@ -8,6 +8,7 @@ import { useTheme } from '../hooks/use-theme'
 import { useToastStore } from '../store/toast-store'
 import { useBillingStatus, useCancelSubscription } from '../hooks/use-billing'
 import { UpgradeModal } from '../components/billing/UpgradeModal'
+import { AccountNavigation } from '../components/ui/AccountNavigation'
 
 type SettingsTab = 'profile' | 'security' | 'appearance' | 'billing'
 const tabs: Array<{ id: SettingsTab; label: string; description: string }> = [
@@ -75,6 +76,7 @@ export function SettingsPage() {
   return (
     <>
       <div className="workspace-content settings-content">
+        <AccountNavigation />
         <header className="settings-title">
           <p className="eyebrow">Preferences</p>
           <h1>Settings</h1>
@@ -147,7 +149,7 @@ export function SettingsPage() {
               
               <div className="rounded-xl border p-6">
                 {loadingBilling ? (
-                  <div className="flex items-center gap-2 text-gray-500">
+                  <div className="flex items-center gap-2 text-[var(--muted)]">
                     <Loader2 className="animate-spin" size={16} />
                     <span>Loading billing information...</span>
                   </div>
@@ -158,7 +160,7 @@ export function SettingsPage() {
                       <span className="font-semibold text-lg">Pro Plan Active</span>
                     </div>
                     {billing.subscription && (
-                      <div className="space-y-2 text-sm text-gray-600">
+                      <div className="space-y-2 text-sm text-[var(--muted)]">
                         <p>Status: <span className="capitalize font-medium">{billing.subscription.status}</span></p>
                         <p>Current Period Ends: <span className="font-medium">{new Date(billing.subscription.currentPeriodEnd).toLocaleDateString()}</span></p>
                         <p>Auto-renew: <span className="font-medium">{billing.subscription.cancelAtPeriodEnd ? 'Off (Cancels at end of period)' : 'On'}</span></p>
@@ -171,7 +173,7 @@ export function SettingsPage() {
                           if (confirm('Are you sure you want to cancel your subscription? You will keep Pro access until the end of your billing period.')) {
                             cancelSub.mutate(undefined, {
                               onSuccess: () => show('Subscription cancelled', 'success'),
-                              onError: (err: any) => show(err.message || 'Failed to cancel', 'error')
+                              onError: (err: unknown) => show(err instanceof Error ? err.message : 'Failed to cancel', 'error')
                             })
                           }
                         }}
@@ -187,11 +189,11 @@ export function SettingsPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold text-lg">Free Plan</h3>
-                        <p className="text-sm text-gray-500">You are currently on the free plan.</p>
+                        <p className="text-sm text-[var(--muted)]">You are currently on the free plan.</p>
                       </div>
                       <button 
                         onClick={() => setShowUpgradeModal(true)}
-                        className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-hover)]"
                       >
                         Upgrade to Pro
                       </button>

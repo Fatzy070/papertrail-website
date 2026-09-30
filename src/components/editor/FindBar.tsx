@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useSearchStore } from '../../store/search-store'
 import { useSearchResults } from '../../hooks/use-search-results'
 
@@ -69,24 +69,23 @@ export function FindBar() {
   }
 
   return (
-    <div className="sticky top-4 z-40 w-full h-0 flex justify-end px-4 pointer-events-none" style={{ marginTop: '16px' }}>
+    <div className="editor-search">
       {!isOpen ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex gap-2 border border-gray-600 items-center py-3 px-4 bg-white rounded-md shadow-lg text-sm text-gray-700 pointer-events-auto hover:bg-gray-50 transition-colors"
+          className="toolbar-button"
           title="Search document (Ctrl+F)"
           aria-label="Open search"
         >
-          <Search size={14} className="text-gray-500" />
+          <Search size={16} />
           <span>Search</span>
         </button>
       ) : (
         <div 
-          className="flex items-center bg-white shadow-lg rounded-md border border-gray-200 p-2 text-sm text-gray-700 pointer-events-auto"
-          style={{ width: '300px' }}
+          className="editor-search-panel"
         >
-          <div className="flex-1 flex items-center bg-gray-50 rounded px-2 py-1 border border-gray-300">
-            <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+          <div className="editor-search-input">
+            <Search className="w-4 h-4 text-[var(--muted)] mr-2 shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -99,7 +98,7 @@ export function FindBar() {
             />
           </div>
 
-          <div className="ml-3 flex items-center space-x-2 text-xs text-gray-500 whitespace-nowrap">
+          <div className="editor-search-actions">
             {query.trim() && (
               <span>
                 {results.length > 0 ? activeMatchIndex + 1 : 0} of {results.length}
@@ -109,7 +108,7 @@ export function FindBar() {
             <button
               onClick={() => prevMatch(results.length)}
               disabled={results.length === 0}
-              className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+              className="icon-button"
               aria-label="Previous match"
             >
               ↑
@@ -117,20 +116,20 @@ export function FindBar() {
             <button
               onClick={() => nextMatch(results.length)}
               disabled={results.length === 0}
-              className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+              className="icon-button"
               aria-label="Next match"
             >
               ↓
             </button>
             
-            <div className="w-px h-4 bg-gray-300 mx-1" />
+            <div className="editor-search-divider" />
             
             <button
               onClick={() => setOpen(false)}
-              className="p-1 hover:bg-gray-100 rounded text-gray-500"
+              className="icon-button"
               aria-label="Close find"
             >
-              ×
+              <X size={15} />
             </button>
           </div>
         </div>

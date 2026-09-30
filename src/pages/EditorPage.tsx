@@ -10,7 +10,6 @@ import { EditorToolbar } from '../components/editor/EditorToolbar'
 import { PdfPage } from '../components/editor/PdfPage'
 import { VersionHistory } from '../components/editor/VersionHistory'
 import { WatermarkModal } from '../components/editor/WatermarkModal'
-import { FindBar } from '../components/editor/FindBar'
 import { exportPdf } from '../engine/pdf-exporter'
 import { loadPdfDocument } from '../engine/pdf-loader'
 import { pdfCache } from '../engine/pdf-cache'
@@ -38,15 +37,19 @@ export function EditorPage() {
   const dirty = useEditorStore((s) => s.dirty)
   const watermark = useEditorStore((s) => s.watermark)
   const markSaved = useEditorStore((s) => s.markSaved)
+  const setZoom = useEditorStore((s) => s.setZoom)
   const reset = useEditorStore((s) => s.reset)
   const show = useToastStore((s) => s.show)
   const [activePage, setActivePage] = useState(0)
   const [leaving, setLeaving] = useState(false)
   const [showWatermarkModal, setShowWatermarkModal] = useState(false)
   const [showExportGate, setShowExportGate] = useState(false)
+  const [mobilePanel, setMobilePanel] = useState<'pages' | 'properties' | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const importTargetIndexRef = useRef<number>(0)
+  const workspaceRef = useRef<HTMLElement>(null)
+  const fittedMobileDocument = useRef<string | null>(null)
   const { data: billing } = useBillingStatus(documentId)
 
   // Auto-download after returning from payment callback
@@ -64,6 +67,18 @@ export function EditorPage() {
   }, [billing, searchParams])
 
   useEditorKeyboardShortcuts()
+
+  useEffect(() => {
+    if (!document?.pages[0] || !window.matchMedia('(max-width: 760px)').matches) return
+    if (fittedMobileDocument.current === document.name) return
+    const frame = window.requestAnimationFrame(() => {
+      const availableWidth = workspaceRef.current?.clientWidth ?? 0
+      if (!availableWidth) return
+      fittedMobileDocument.current = document.name
+      setZoom(Math.max(0.5, Math.min((availableWidth - 20) / document.pages[0].width, 2.5)))
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [document?.name, document?.pages, setZoom])
 
   async function handleImportPdf(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -304,6 +319,8 @@ export function EditorPage() {
         onVersions={() => setHistory(true)}
         onImageClick={() => imageInputRef.current?.click()}
         onWatermarkClick={() => setShowWatermarkModal(true)}
+        onPagesClick={() => setMobilePanel('pages')}
+        onPropertiesClick={() => setMobilePanel('properties')}
         saving={saveMutation.isPending}
         saveError={saveError}
       />
@@ -336,9 +353,10 @@ export function EditorPage() {
             importTargetIndexRef.current = index
             pdfInputRef.current?.click()
           }}
+          mobileOpen={mobilePanel === 'pages'}
+          onMobileDismiss={() => setMobilePanel(null)}
         />
-        <section className="pdf-workspace relative" aria-label="Document canvas">
-          <FindBar />
+        <section ref={workspaceRef} className="pdf-workspace relative" aria-label="Document canvas">
           <div className="pdf-pages">
             {(loading || metadata.isPending || fetching) && (
               <LoadingState label="Opening your PDF" />
@@ -365,7 +383,7 @@ export function EditorPage() {
               ))}
           </div>
         </section>
-        <PropertyPanel />
+        <PropertyPanel mobileOpen={mobilePanel === 'properties'} onMobileDismiss={() => setMobilePanel(null)} />
       </div>
       <footer className="editor-footer">
         <span>

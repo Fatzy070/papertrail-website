@@ -1,5 +1,9 @@
 import * as mupdf from 'mupdf'
 
+type RedactionCapablePage = mupdf.PDFPage & {
+  applyRedactions: (blackBoxes: boolean, imageMethod: number, lineArtMethod: number, textMethod: number) => void
+}
+
 export interface PendingRedaction {
   id: string
   pageId: string
@@ -57,11 +61,8 @@ export async function applyMuPdfRedactions(
           annot.setRect([x0, y0, x1, y1])
         }
         
-        // Apply all Redact annotations on the page.
-        // We pass arguments (false, 0, 0, 0) to avoid drawing a black rectangle fill or borders.
-        // Or if the typings differ, we can do (page as any).applyRedactions({ fill_color: null }) or similar.
-        // Let's pass the magic arguments from the previous session.
-        (page as any).applyRedactions(false, 0, 0, 0)
+        // MuPDF exposes this method at runtime but omits it from the current package typings.
+        ;(page as unknown as RedactionCapablePage).applyRedactions(false, 0, 0, 0)
         page.update()
       } finally {
         if (page) {

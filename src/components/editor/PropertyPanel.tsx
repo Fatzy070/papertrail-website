@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SlidersHorizontal, Trash2, Type, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon } from 'lucide-react'
+import { SlidersHorizontal, Trash2, Type, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon, X } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
 import { ColorPicker } from '../ui/ColorPicker'
 import { LinkModal } from './LinkModal'
@@ -14,7 +14,7 @@ import {
 } from '../../engine/font-registry'
 import type { FontId } from '../../engine/font-registry'
 
-export function PropertyPanel() {
+export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileOpen?: boolean; onMobileDismiss?: () => void }) {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const selected = useEditorStore((s) =>
     s.elements.find((e) => e.id === s.selectedElementId),
@@ -23,9 +23,10 @@ export function PropertyPanel() {
   const update = useEditorStore((s) => s.updateElement)
   const remove = useEditorStore((s) => s.deleteSelected)
   return (
-    <aside className="property-panel">
+    <aside className={mobileOpen ? 'property-panel mobile-panel-open' : 'property-panel'}>
       <div className="panel-heading">
         <SlidersHorizontal size={15} /> Properties
+        <button type="button" className="mobile-panel-close" onClick={onMobileDismiss} aria-label="Close properties panel"><X size={18} /></button>
       </div>
       {selected ? (
         selected.type === 'source-image' ? (

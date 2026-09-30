@@ -38,22 +38,22 @@ export function UpgradeModal({ onClose }: { onClose: () => void }) {
   return (
     <Dialog title="Upgrade to Pro" onClose={onClose}>
       <div className="py-4">
-        <div className="mb-6 rounded-xl bg-blue-50 p-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-900">₦5,000<span className="text-sm font-normal text-gray-500">/month</span></h3>
-          <p className="mt-2 text-sm text-blue-600">Unlock your full potential</p>
+        <div className="mb-6 rounded-xl bg-[var(--primary-soft)] p-6 text-center">
+          <h3 className="text-2xl font-bold text-[var(--text)]">₦5,000<span className="text-sm font-normal text-[var(--muted)]">/month</span></h3>
+          <p className="mt-2 text-sm text-[var(--primary)]">Unlock your full potential</p>
         </div>
 
         <ul className="mb-8 space-y-3">
           {features.map((feature, idx) => (
             <li key={idx} className="flex items-center gap-3">
               <Check className="h-5 w-5 text-green-500" />
-              <span className="text-gray-700">{feature}</span>
+              <span className="text-[var(--text)]">{feature}</span>
             </li>
           ))}
         </ul>
 
         <button
-          className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="w-full rounded-lg bg-[var(--primary)] py-3 font-semibold text-white hover:bg-[var(--primary-hover)] disabled:opacity-50"
           onClick={() => setShowPaymentMethod(true)}
           disabled={checkoutPro.isPending}
         >

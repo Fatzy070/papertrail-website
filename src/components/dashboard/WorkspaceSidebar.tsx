@@ -1,90 +1,20 @@
-import { Clock3, CircleHelp, Combine, FolderOpen, Home, LogOut, Minimize2, RefreshCw, Scissors, Settings, Star, Trash2 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { FolderOpen, Home, Grid2X2, ChevronUp } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { Brand } from '../ui/Brand'
 import { UserAvatar } from '../ui/UserAvatar'
-import { useCurrentUser, useLogout } from '../../hooks/use-auth'
-import { useToastStore } from '../../store/toast-store'
-import { useDocuments } from '../../hooks/use-documents'
-
-const WORKSPACE_LINKS = [
-  { to: '/documents', icon: FolderOpen, label: 'My Documents', showCount: true },
-  { to: '/recent', icon: Clock3, label: 'Recent' },
-  { to: '/starred', icon: Star, label: 'Starred' },
-  { to: '/trash', icon: Trash2, label: 'Trash' },
-]
-
-const TOOL_LINKS = [
-  { to: '/tools/merge', icon: Combine, label: 'Merge PDF' },
-  { to: '/tools/split', icon: Scissors, label: 'Split / Extract Pages' },
-  { to: '/tools/compress', icon: Minimize2, label: 'Compress PDF' },
-  { to: '/tools/convert', icon: RefreshCw, label: 'Convert PDF' },
-]
-
-const FOOTER_LINKS = [
-  { to: '/support', icon: CircleHelp, label: 'Help & Feedback' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-]
+import { useCurrentUser } from '../../hooks/use-auth'
 
 export function WorkspaceSidebar() {
   const user = useCurrentUser()
-  const logout = useLogout()
-  const navigate = useNavigate()
-  const show = useToastStore((state) => state.show)
-  const documents = useDocuments('all')
-  const documentCount = documents.data?.length ?? 0
-
-  return (
-    <aside className="workspace-sidebar">
-      <div className="sidebar-brand-row">
-        <Link to="/dashboard"><Brand /></Link>
-      </div>
-   
-      <Link className="workspace-nav sidebar-home-link" to="/dashboard">
-        <Home size={17} /><span>Home</span>
-      </Link>
-      
-      <p className="sidebar-section-label">Workspace</p>
-      {WORKSPACE_LINKS.map((link) => (
-        <Link key={link.to} className="workspace-nav" to={link.to}>
-          <link.icon size={17} />
-          <span>{link.label}</span>
-          {link.showCount && <span>{documentCount}</span>}
-        </Link>
-      ))}
-
-      <p className="sidebar-section-label">Tools</p>
-      {TOOL_LINKS.map((link) => (
-        <Link key={link.to} className="workspace-nav" to={link.to}>
-          <link.icon size={17} />
-          <span>{link.label}</span>
-        </Link>
-      ))}
-      
-      <div className="mt-auto">
-        <div className="sidebar-divider" />
-        {FOOTER_LINKS.map((link) => (
-          <Link key={link.to} className="workspace-nav" to={link.to}>
-            <link.icon size={17} />
-            <span>{link.label}</span>
-          </Link>
-        ))}
-        <div className="account-card" style={{ marginTop: 0 }}>
-          <UserAvatar user={user.data} size="small" />
-          <div className="account-copy">
-            <strong>{user.data?.name}</strong>
-            <span>{user.data?.email}</span>
-          </div>
-          <button 
-            className="icon-button" 
-            aria-label="Sign out" 
-            title="Sign out" 
-            disabled={logout.isPending} 
-            onClick={() => void logout.mutateAsync().then(() => navigate('/login')).catch(() => show('Could not sign out. Try again.', 'error'))}
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </div>
-    </aside>
-  )
+  const { pathname } = useLocation()
+  const links = [
+    { to: '/dashboard', label: 'Home', icon: Home, active: pathname === '/dashboard' },
+    { to: '/documents', label: 'My Documents', icon: FolderOpen, active: ['/documents','/recent','/starred','/trash'].includes(pathname) },
+    { to: '/tools', label: 'PDF Tools', icon: Grid2X2, active: pathname.startsWith('/tools') },
+  ]
+  return <aside className="workspace-sidebar compact-sidebar">
+    <div className="sidebar-brand-row"><Link to="/dashboard"><Brand /></Link></div>
+    <nav aria-label="Workspace navigation">{links.map(({ icon: Icon, ...link }) => <Link key={link.to} to={link.to} title={link.label} aria-current={link.active ? 'page' : undefined} className={link.active ? 'workspace-nav active' : 'workspace-nav'}><Icon size={19} /><span>{link.label}</span></Link>)}</nav>
+    <div className="sidebar-account"><Link to="/settings" className="account-entry" title="Your account" aria-label="Open your account"><UserAvatar user={user.data} size="small" /><div className="account-copy"><strong>{user.data?.name}</strong><span>{user.data?.email}</span></div><ChevronUp size={15} /></Link></div>
+  </aside>
 }
