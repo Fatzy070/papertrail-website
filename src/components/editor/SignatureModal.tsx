@@ -184,28 +184,28 @@ export function SignatureModal({ onClose, onSave }: Props) {
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Add Signature</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+          <h2 className="font-semibold text-[var(--text)]">Add Signature</h2>
+          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--muted)]">✕</button>
         </div>
 
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-[var(--border)]">
           <button 
-            className={`flex-1 py-3 text-sm font-medium ${tab === 'draw' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} 
+            className={`flex-1 py-3 text-sm font-medium ${tab === 'draw' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-[var(--muted)] hover:bg-[var(--surface-hover)]'}`} 
             onClick={() => setTab('draw')}
           >
             Draw
           </button>
           <button 
-            className={`flex-1 py-3 text-sm font-medium ${tab === 'upload' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} 
+            className={`flex-1 py-3 text-sm font-medium ${tab === 'upload' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-[var(--muted)] hover:bg-[var(--surface-hover)]'}`} 
             onClick={() => setTab('upload')}
           >
             Upload
           </button>
           <button 
-            className={`flex-1 py-3 text-sm font-medium ${tab === 'type' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} 
+            className={`flex-1 py-3 text-sm font-medium ${tab === 'type' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-[var(--muted)] hover:bg-[var(--surface-hover)]'}`} 
             onClick={() => setTab('type')}
           >
             Type
@@ -216,7 +216,7 @@ export function SignatureModal({ onClose, onSave }: Props) {
           
           {tab === 'draw' && (
             <div 
-              className="border border-gray-300 rounded-lg bg-white h-[200px] touch-none relative overflow-hidden cursor-crosshair w-full"
+              className="border border-[var(--border)] rounded-lg bg-white h-[200px] touch-none relative overflow-hidden cursor-crosshair w-full"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
@@ -231,13 +231,13 @@ export function SignatureModal({ onClose, onSave }: Props) {
           )}
 
           {tab === 'upload' && (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center gap-2 h-[200px] hover:bg-gray-50 relative bg-white transition-colors">
+            <div className="border-2 border-dashed border-[var(--border)] rounded-lg p-6 flex flex-col items-center justify-center gap-2 h-[200px] hover:bg-[var(--surface-hover)] relative bg-white transition-colors">
               {uploadSrc ? (
                  <img src={uploadSrc} alt="Signature preview" className="max-h-full max-w-full object-contain pointer-events-none" />
               ) : (
                  <>
-                   <span className="text-gray-500 font-medium">Click to upload image</span>
-                   <span className="text-xs text-gray-400">PNG, JPG, WEBP</span>
+                   <span className="text-[var(--muted)] font-medium">Click to upload image</span>
+                   <span className="text-xs text-[var(--muted)]">PNG, JPG, WEBP</span>
                  </>
               )}
               <input 
@@ -255,7 +255,7 @@ export function SignatureModal({ onClose, onSave }: Props) {
                 type="text"
                 placeholder="Type your name..."
                 autoFocus
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg bg-white"
+                className="w-full px-4 py-3 border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg bg-white"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
@@ -263,13 +263,13 @@ export function SignatureModal({ onClose, onSave }: Props) {
                 }}
               />
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-gray-500 font-medium">Select a style:</span>
+                <span className="text-sm text-[var(--muted)] font-medium">Select a style:</span>
                 <div className="grid grid-cols-2 gap-3">
                   {FONTS.map(font => (
                     <button
                       key={font}
                       className={`p-3 border rounded-lg text-xl text-center cursor-pointer transition-colors ${
-                        selectedFont === font ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300'
+                        selectedFont === font ? 'border-blue-500 bg-blue-50' : 'border-[var(--border)] bg-white hover:border-blue-300'
                       }`}
                       style={{ fontFamily: font, color }}
                       onClick={() => setSelectedFont(font)}
@@ -285,7 +285,7 @@ export function SignatureModal({ onClose, onSave }: Props) {
           {tab !== 'upload' && (
             <div className="flex items-center gap-2 justify-between mt-2">
               <div className="flex gap-3 items-center">
-                <span className="text-sm text-gray-500 font-medium">Color:</span>
+                <span className="text-sm text-[var(--muted)] font-medium">Color:</span>
                 <button 
                    className={`w-7 h-7 rounded-full bg-black border-2 transition-all ${color === '#000000' ? 'border-blue-400 scale-110 shadow-sm' : 'border-transparent hover:scale-105'}`} 
                    onClick={() => setColor('#000000')} 
@@ -307,8 +307,8 @@ export function SignatureModal({ onClose, onSave }: Props) {
 
         </div>
 
-        <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
-          <button onClick={onClose} className="px-5 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium transition-colors">
+        <div className="p-4 border-t border-[var(--border)] flex justify-end gap-3 bg-white">
+          <button onClick={onClose} className="px-5 py-2 text-sm text-[var(--muted)] bg-gray-100 rounded-lg hover:bg-gray-200 font-medium transition-colors">
             Cancel
           </button>
           <button 

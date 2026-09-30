@@ -55,7 +55,7 @@ export function DocumentActions({
       <button
         type="button"
         className={`inline-flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-colors ${
-          isOpen ? 'text-slate-700 bg-slate-200/50' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/50'
+          isOpen ? 'text-[var(--text)] bg-slate-200/50' : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-slate-200/50'
         }`}
         aria-label={`Actions for ${document.name}`}
         aria-haspopup="menu"
@@ -69,11 +69,11 @@ export function DocumentActions({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-10 mt-1 w-44 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none divide-y divide-slate-100 py-1">
+        <div className="absolute right-0 z-10 mt-1 w-44 origin-top-right rounded-xl bg-[var(--surface)] shadow-lg ring-1 ring-black/5 focus:outline-none divide-y divide-slate-100 py-1">
           {filter === 'trash' ? (
             <>
               <button
-                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--surface-muted)] hover:text-[var(--primary)] transition-colors"
                 onClick={() => {
                   onClose()
                   onRestore(document)
@@ -94,31 +94,31 @@ export function DocumentActions({
           ) : (
             <>
               <button
-                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--surface-muted)] transition-colors"
                 onClick={() => {
                   onClose()
                   onToggleStar(document)
                 }}
               >
-                {document.isStarred ? <StarOff size={14} className="text-yellow-500" /> : <Star size={14} className="text-slate-400" />} {document.isStarred ? 'Unstar' : 'Star'}
+                {document.isStarred ? <StarOff size={14} className="text-yellow-500" /> : <Star size={14} className="text-[var(--muted)]" />} {document.isStarred ? 'Unstar' : 'Star'}
               </button>
               <button
-                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--surface-muted)] transition-colors"
                 onClick={() => {
                   onClose()
                   onRename(document)
                 }}
               >
-                <Pencil size={14} className="text-slate-400" /> Rename
+                <Pencil size={14} className="text-[var(--muted)]" /> Rename
               </button>
               <button
-                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--surface-muted)] transition-colors"
                 onClick={() => {
                   onClose()
                   onDownload(document.id)
                 }}
               >
-                <Download size={14} className="text-slate-400" /> Download
+                <Download size={14} className="text-[var(--muted)]" /> Download
               </button>
               <button
                 className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"

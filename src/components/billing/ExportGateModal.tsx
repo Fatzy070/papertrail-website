@@ -122,13 +122,13 @@ export function ExportGateModal({
   return (
     <Dialog title="Your PDF is ready" onClose={onClose}>
       <div className="py-4">
-        <p className="text-gray-600 text-center text-sm md:text-base">
+        <p className="text-[var(--muted)] text-center text-sm md:text-base">
           Choose a one-time export for this document or upgrade to Pro for unlimited exports and higher limits.
         </p>
         
         {documentName && (
           <div className="text-center py-3">
-            <span className="font-medium text-gray-900">Export:</span> {documentName}
+            <span className="font-medium text-[var(--text)]">Export:</span> {documentName}
           </div>
         )}
 
@@ -143,8 +143,8 @@ export function ExportGateModal({
                 onClick={() => setSelectedPlan(plan.id)}
                 className={`rounded-xl p-6 flex flex-col justify-between relative cursor-pointer transition-all ${plan.orderClass} ${
                   isSelected 
-                    ? 'border-2 border-blue-500 bg-blue-50/50 shadow-sm' 
-                    : 'border border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
+                    ? 'border-2 border-blue-500 bg-[var(--primary-soft)]/50 shadow-sm' 
+                    : 'border border-[var(--border)] bg-[var(--surface)] hover:border-blue-300 hover:shadow-sm'
                 }`}
               >
                 {plan.badge && (
@@ -153,22 +153,22 @@ export function ExportGateModal({
                   </div>
                 )}
                 <div>
-                  <div className={`flex items-center gap-2 mb-2 font-semibold mt-1 ${isSelected ? 'text-blue-700' : 'text-gray-700'}`}>
+                  <div className={`flex items-center gap-2 mb-2 font-semibold mt-1 ${isSelected ? 'text-[var(--primary)]' : 'text-[var(--text)]'}`}>
                     <Icon size={20} />
                     <h3>{plan.title}</h3>
                   </div>
-                  <h4 className="text-2xl font-bold text-gray-900 mb-6">
+                  <h4 className="text-2xl font-bold text-[var(--text)] mb-6">
                     {plan.price}
-                    {plan.priceSuffix && <span className="text-sm font-normal text-gray-500">{plan.priceSuffix}</span>}
-                    {plan.priceSubtitle && <span className="block text-sm font-normal text-gray-500 mt-1">{plan.priceSubtitle}</span>}
+                    {plan.priceSuffix && <span className="text-sm font-normal text-[var(--muted)]">{plan.priceSuffix}</span>}
+                    {plan.priceSubtitle && <span className="block text-sm font-normal text-[var(--muted)] mt-1">{plan.priceSubtitle}</span>}
                   </h4>
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feat, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-snug">
-                        <Check size={16} className={`${isSelected ? 'text-blue-500' : 'text-gray-400'} shrink-0 mt-0.5 transition-colors`} /> 
+                      <li key={i} className="flex items-start gap-2 text-sm text-[var(--text)] leading-snug">
+                        <Check size={16} className={`${isSelected ? 'text-[var(--primary)]' : 'text-[var(--muted)]'} shrink-0 mt-0.5 transition-colors`} /> 
                         <div>
                           <span>{feat.text}</span>
-                          {feat.subtext && <span className="block text-xs text-gray-500 mt-0.5">{feat.subtext}</span>}
+                          {feat.subtext && <span className="block text-xs text-[var(--muted)] mt-0.5">{feat.subtext}</span>}
                         </div>
                       </li>
                     ))}
@@ -182,8 +182,8 @@ export function ExportGateModal({
                   }}
                   className={`w-full rounded-lg py-2.5 font-semibold mt-4 transition-colors disabled:opacity-50 ${
                     isSelected
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]'
+                      : 'border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-muted)]'
                   }`}
                 >
                   {plan.buttonText}

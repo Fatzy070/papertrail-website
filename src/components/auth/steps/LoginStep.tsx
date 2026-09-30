@@ -73,9 +73,6 @@ export function LoginStep({
         <label className="field-label">
           <div className="flex-between">
             <span>Password</span>
-            <button type="button" onClick={onForgotPassword} className="auth-link-button">
-              Forgot password?
-            </button>
           </div>
           <span className="password-field">
             <input
@@ -116,7 +113,12 @@ export function LoginStep({
           Sign in
           <ArrowRight size={16} />
         </button>
+        
       </form>
+
+      <button type="button" onClick={onForgotPassword} className=" flex w-[100%] justify-end pt-2 text-sm">
+              Forgot password?
+            </button>
       
       <p className="auth-switch">
         New to Papertrail?{' '}

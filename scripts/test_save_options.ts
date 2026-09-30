@@ -1,5 +1,4 @@
 import * as mupdf from 'mupdf'
-import fs from 'fs'
 
 try {
     const doc = new mupdf.Document()

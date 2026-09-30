@@ -1,11 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
 import { ToastViewport } from './components/ui/ToastViewport'
 import { AuthPage } from './pages/AuthPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { EditorPage } from './pages/EditorPage'
 import { ProtectedRoute, PublicOnlyRoute } from './routes/RouteGuards'
-import { ThemeProvider } from './hooks/use-theme'
 import { SettingsPage } from './pages/SettingsPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { AuthShell } from './components/auth/AuthShell'
@@ -18,8 +16,9 @@ import { SplitPdfPage } from './pages/tools/SplitPdfPage'
 import { CompressPdfPage } from './pages/tools/CompressPdfPage'
 import { ConvertPdfPage } from './pages/tools/ConvertPdfPage'
 import { BillingCallbackPage } from './pages/BillingCallbackPage'
+import { LandingPage } from './pages/LandingPage'
+import { ToolsPage } from './pages/tools/ToolsPage'
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
 function RedirectWithParams({ to, step }: { to: string; step: string }) {
   const [searchParams] = useSearchParams()
@@ -27,15 +26,12 @@ function RedirectWithParams({ to, step }: { to: string; step: string }) {
   return <Navigate to={`${to}?${searchParams.toString()}`} replace />
 }
 
-import { GoogleOAuthProvider } from '@react-oauth/google'
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
         <BrowserRouter>
           <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route element={<PublicOnlyRoute />}>
             <Route path="/auth" element={<AuthShell />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
@@ -54,6 +50,7 @@ function App() {
               <Route path="/starred" element={<DocumentsPage filter="starred" />} />
               <Route path="/trash" element={<DocumentsPage filter="trash" />} />
               <Route path="/tools/merge" element={<MergePdfPage />} />
+              <Route path="/tools" element={<ToolsPage />} />
               <Route path="/tools/split" element={<SplitPdfPage />} />
               <Route path="/tools/compress" element={<CompressPdfPage />} />
               <Route path="/tools/convert" element={<ConvertPdfPage />} />
@@ -65,9 +62,6 @@ function App() {
         </Routes>
         <ToastViewport />
       </BrowserRouter>
-      </ThemeProvider>
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
   )
 }
 

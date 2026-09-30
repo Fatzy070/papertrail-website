@@ -1,3 +1,4 @@
+import { AuthStory } from './AuthStory'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -72,7 +73,7 @@ export function AuthShell() {
         <span>Your document workspace</span>
         <ThemeToggle />
       </header>
-      <section className="auth-card overflow-hidden">
+      <AuthStory /><section className="auth-card overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}

@@ -99,51 +99,51 @@ export function MergePdfPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-8 w-full">
+    <div className="workspace-content tool-workflow">
       <header className="mb-8">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-4 transition-colors">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--text)] mb-4 transition-colors">
           <ArrowLeft size={16} />
           Back to home
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">Merge PDF</h1>
-        <p className="text-slate-500 text-sm">Combine multiple PDFs into a single document.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] mb-1">Merge PDF</h1>
+        <p className="text-[var(--muted)] text-sm">Combine multiple PDFs into a single document.</p>
       </header>
 
       <div
         {...dropzone.getRootProps()}
         className={`relative flex flex-col items-center justify-center p-10 mb-8 border-2 border-dashed rounded-3xl transition-all cursor-pointer group ${
           dropzone.isDragActive
-            ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-500/20'
-            : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50 hover:shadow-sm'
+            ? 'border-blue-500 bg-[var(--primary-soft)] ring-4 ring-blue-500/20'
+            : 'border-[var(--border)] bg-[var(--surface)] hover:border-blue-400 hover:bg-[var(--surface-muted)] hover:shadow-sm'
         }`}
       >
         <input {...dropzone.getInputProps()} />
-        <div className="bg-blue-100 text-blue-600 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
+        <div className="bg-[var(--primary-soft)] text-[var(--primary)] p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
           <UploadCloud size={24} />
         </div>
-        <div className="text-base text-slate-700 text-center mb-1">
-          <strong>Drop PDFs here</strong> <span className="font-normal text-slate-500">or click to browse</span>
+        <div className="text-base text-[var(--text)] text-center mb-1">
+          <strong>Drop PDFs here</strong> <span className="font-normal text-[var(--muted)]">or click to browse</span>
         </div>
-        <span className="text-xs font-medium text-slate-400">Add multiple PDFs to combine them</span>
+        <span className="text-xs font-medium text-[var(--muted)]">Add multiple PDFs to combine them</span>
       </div>
 
       {files.length > 0 && !result && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Files to merge</h2>
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Files to merge</h2>
           <div className="space-y-3 mb-6">
             {files.map((file, idx) => (
-              <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 bg-[var(--surface-muted)] border border-[var(--border)] rounded-xl">
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="bg-white p-2 rounded-lg shadow-sm">
-                    <FileText size={18} className="text-blue-500" />
+                  <div className="bg-[var(--surface)] p-2 rounded-lg shadow-sm">
+                    <FileText size={18} className="text-[var(--primary)]" />
                   </div>
-                  <span className="text-sm font-medium text-slate-700 truncate">{file.name}</span>
+                  <span className="text-sm font-medium text-[var(--text)] truncate">{file.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+                  <button onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1.5 text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 transition-colors">
                     <ArrowUp size={16} />
                   </button>
-                  <button onClick={() => moveDown(idx)} disabled={idx === files.length - 1} className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+                  <button onClick={() => moveDown(idx)} disabled={idx === files.length - 1} className="p-1.5 text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 transition-colors">
                     <ArrowDown size={16} />
                   </button>
                   <div className="w-px h-4 bg-slate-200 mx-1" />
@@ -159,7 +159,7 @@ export function MergePdfPage() {
             <button
               onClick={handleMerge}
               disabled={isProcessing || files.length < 2}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="px-5 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               {isProcessing ? 'Merging...' : 'Merge PDFs'}
             </button>
@@ -178,7 +178,7 @@ export function MergePdfPage() {
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
             <button
               onClick={handleDownload}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-sm font-medium rounded-xl shadow-sm transition-all"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--surface)] border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-sm font-medium rounded-xl shadow-sm transition-all"
             >
               <Download size={16} />
               Download

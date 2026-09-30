@@ -196,28 +196,30 @@ export function ConvertPdfPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-8 w-full">
+    <div className="workspace-content tool-workflow">
       <header className="mb-8">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-4 transition-colors">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--text)] mb-4 transition-colors">
           <ArrowLeft size={16} />
           Back to home
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">Convert PDF</h1>
-        <p className="text-slate-500 text-sm">Convert between PDFs and images.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] mb-1">Convert PDF</h1>
+        <p className="text-[var(--muted)] text-sm">Convert between PDFs and images.</p>
       </header>
 
-      <div className="flex bg-slate-100 p-1 rounded-xl w-fit mb-8 shadow-sm">
+      <div className="conversion-choices" aria-label="Conversion direction">
         <button
-          className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${mode === 'pdf-to-images' ? 'bg-white shadow text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
+          className={mode === 'pdf-to-images' ? 'conversion-choice active' : 'conversion-choice'}
+          aria-pressed={mode === 'pdf-to-images'}
           onClick={() => setMode('pdf-to-images')}
         >
-          PDF to Images
+          <FileText size={25} /><span><small>FROM PDF</small><strong>PDF to Images</strong><p>Every page, as a PNG image.</p></span><ArrowDown size={18} />
         </button>
         <button
-          className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${mode === 'images-to-pdf' ? 'bg-white shadow text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
+          className={mode === 'images-to-pdf' ? 'conversion-choice active' : 'conversion-choice'}
+          aria-pressed={mode === 'images-to-pdf'}
           onClick={() => setMode('images-to-pdf')}
         >
-          Images to PDF
+          <ImageIcon size={25} /><span><small>TO PDF</small><strong>Images to PDF</strong><p>Your JPG and PNG files, in order.</p></span><ArrowDown size={18} />
         </button>
       </div>
 
@@ -228,39 +230,39 @@ export function ConvertPdfPage() {
               {...pdfDropzone.getRootProps()}
               className={`relative flex flex-col items-center justify-center p-10 mb-8 border-2 border-dashed rounded-3xl transition-all cursor-pointer group ${
                 pdfDropzone.isDragActive
-                  ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-500/20'
-                  : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50 hover:shadow-sm'
+                  ? 'border-blue-500 bg-[var(--primary-soft)] ring-4 ring-blue-500/20'
+                  : 'border-[var(--border)] bg-[var(--surface)] hover:border-blue-400 hover:bg-[var(--surface-muted)] hover:shadow-sm'
               }`}
             >
               <input {...pdfDropzone.getInputProps()} />
-              <div className="bg-blue-100 text-blue-600 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
+              <div className="bg-[var(--primary-soft)] text-[var(--primary)] p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
                 <UploadCloud size={24} />
               </div>
-              <div className="text-base text-slate-700 text-center mb-1">
-                <strong>Drop a PDF here</strong> <span className="font-normal text-slate-500">or click to browse</span>
+              <div className="text-base text-[var(--text)] text-center mb-1">
+                <strong>Drop a PDF here</strong> <span className="font-normal text-[var(--muted)]">or click to browse</span>
               </div>
             </div>
           )}
 
           {pdfFile && extractedImages.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 max-w-xl mx-auto text-center">
-              <div className="inline-flex bg-blue-50 p-3 rounded-xl text-blue-600 mb-4">
+            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm p-6 mb-8 max-w-xl mx-auto text-center">
+              <div className="inline-flex bg-[var(--primary-soft)] p-3 rounded-xl text-[var(--primary)] mb-4">
                 <FileText size={24} />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-1">{pdfFile.name}</h3>
-              <p className="text-sm text-slate-500 mb-6">Ready to extract images</p>
+              <h3 className="font-semibold text-[var(--text)] mb-1">{pdfFile.name}</h3>
+              <p className="text-sm text-[var(--muted)] mb-6">Ready to extract images</p>
               
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => setPdfFile(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] bg-[var(--surface-muted)] hover:bg-slate-200 rounded-xl transition-colors"
                 >
                   Change file
                 </button>
                 <button
                   onClick={handleExtractImages}
                   disabled={isProcessing}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 inline-flex items-center gap-2"
+                  className="px-5 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 inline-flex items-center gap-2"
                 >
                   {isProcessing && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
                   {isProcessing ? 'Extracting...' : 'Extract Images'}
@@ -270,11 +272,11 @@ export function ConvertPdfPage() {
           )}
 
           {extractedImages.length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+            <div className="bg-[var(--surface-muted)] border border-[var(--border)] rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border)]">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Extracted Images</h2>
-                  <p className="text-sm text-slate-500">{extractedImages.length} pages extracted from {pdfFile?.name}</p>
+                  <h2 className="text-lg font-bold text-[var(--text)]">Extracted Images</h2>
+                  <p className="text-sm text-[var(--muted)]">{extractedImages.length} pages extracted from {pdfFile?.name}</p>
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -282,13 +284,13 @@ export function ConvertPdfPage() {
                       setPdfFile(null)
                       setExtractedImages([])
                     }}
-                    className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm"
+                    className="px-4 py-2 text-sm font-medium text-[var(--muted)] bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-muted)] rounded-lg shadow-sm"
                   >
                     Start Over
                   </button>
                   <button
                     onClick={downloadAllImages}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2"
+                    className="px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2"
                   >
                     <Download size={16} />
                     Download All
@@ -298,20 +300,20 @@ export function ConvertPdfPage() {
               
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {extractedImages.map((img, i) => (
-                  <div key={i} className="group relative bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-                    <div className="aspect-[3/4] bg-slate-100 relative">
+                  <div key={i} className="group relative bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+                    <div className="aspect-[3/4] bg-[var(--surface-muted)] relative">
                       <img src={img.url} alt={`Page ${i+1}`} className="w-full h-full object-contain p-2" />
                       <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <a
                           href={img.url}
                           download={img.name}
-                          className="p-3 bg-white text-slate-900 rounded-full hover:scale-110 transition-transform shadow-lg"
+                          className="p-3 bg-[var(--surface)] text-[var(--text)] rounded-full hover:scale-110 transition-transform shadow-lg"
                         >
                           <Download size={18} />
                         </a>
                       </div>
                     </div>
-                    <div className="p-3 border-t border-slate-100 text-xs font-medium text-slate-600 text-center truncate">
+                    <div className="p-3 border-t border-[var(--border)] text-xs font-medium text-[var(--muted)] text-center truncate">
                       {img.name}
                     </div>
                   </div>
@@ -328,37 +330,37 @@ export function ConvertPdfPage() {
             {...imagesDropzone.getRootProps()}
             className={`relative flex flex-col items-center justify-center p-10 mb-8 border-2 border-dashed rounded-3xl transition-all cursor-pointer group ${
               imagesDropzone.isDragActive
-                ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-500/20'
-                : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50 hover:shadow-sm'
+                ? 'border-blue-500 bg-[var(--primary-soft)] ring-4 ring-blue-500/20'
+                : 'border-[var(--border)] bg-[var(--surface)] hover:border-blue-400 hover:bg-[var(--surface-muted)] hover:shadow-sm'
             }`}
           >
             <input {...imagesDropzone.getInputProps()} />
-            <div className="bg-blue-100 text-blue-600 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
+            <div className="bg-[var(--primary-soft)] text-[var(--primary)] p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
               <ImageIcon size={24} />
             </div>
-            <div className="text-base text-slate-700 text-center mb-1">
-              <strong>Drop images here</strong> <span className="font-normal text-slate-500">or click to browse</span>
+            <div className="text-base text-[var(--text)] text-center mb-1">
+              <strong>Drop images here</strong> <span className="font-normal text-[var(--muted)]">or click to browse</span>
             </div>
-            <span className="text-xs font-medium text-slate-400">PNG or JPG files</span>
+            <span className="text-xs font-medium text-[var(--muted)]">PNG or JPG files</span>
           </div>
 
           {imageFiles.length > 0 && !pdfResult && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Images to convert</h2>
+            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm p-6 mb-8">
+              <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Images to convert</h2>
               <div className="space-y-3 mb-6">
                 {imageFiles.map((file, idx) => (
-                  <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 bg-[var(--surface-muted)] border border-[var(--border)] rounded-xl">
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="bg-white p-2 rounded-lg shadow-sm">
-                        <ImageIcon size={18} className="text-blue-500" />
+                      <div className="bg-[var(--surface)] p-2 rounded-lg shadow-sm">
+                        <ImageIcon size={18} className="text-[var(--primary)]" />
                       </div>
-                      <span className="text-sm font-medium text-slate-700 truncate">{file.name}</span>
+                      <span className="text-sm font-medium text-[var(--text)] truncate">{file.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+                      <button onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1.5 text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 transition-colors">
                         <ArrowUp size={16} />
                       </button>
-                      <button onClick={() => moveDown(idx)} disabled={idx === imageFiles.length - 1} className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+                      <button onClick={() => moveDown(idx)} disabled={idx === imageFiles.length - 1} className="p-1.5 text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 transition-colors">
                         <ArrowDown size={16} />
                       </button>
                       <div className="w-px h-4 bg-slate-200 mx-1" />
@@ -374,7 +376,7 @@ export function ConvertPdfPage() {
                 <button
                   onClick={handleCreatePdf}
                   disabled={isProcessing}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none inline-flex items-center gap-2"
+                  className="px-5 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none inline-flex items-center gap-2"
                 >
                   {isProcessing && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
                   {isProcessing ? 'Converting...' : 'Create PDF'}
@@ -394,7 +396,7 @@ export function ConvertPdfPage() {
               <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
                 <button
                   onClick={handleDownloadPdf}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-sm font-medium rounded-xl shadow-sm transition-all"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--surface)] border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-sm font-medium rounded-xl shadow-sm transition-all"
                 >
                   <Download size={16} />
                   Download

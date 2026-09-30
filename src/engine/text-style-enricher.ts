@@ -335,7 +335,7 @@ export async function enrichTextElementsWithMuPDF(
     // must completely agree on font metadata (this happens when PDF.js merges words but MuPDF doesn't).
     if (candidates.length === 0) continue
 
-    let span = candidates[0].span
+    const span = candidates[0].span
     if (candidates.length > 1) {
       // Check if all candidates agree on the font metadata
       const first = candidates[0].span

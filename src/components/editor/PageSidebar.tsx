@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { X } from 'lucide-react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { EditorPage } from '../../types/editor'
 import { useEditorStore } from '../../store/editor-store'
@@ -72,34 +73,62 @@ export function PageSidebar({
   active,
   onSelect,
   onImportFromFile,
+  mobileOpen = false,
+  onMobileDismiss,
 }: {
   pdf: PDFDocumentProxy | null
   pages: EditorPage[]
   active: number
   onSelect: (index: number) => void
   onImportFromFile: (index: number) => void
+  mobileOpen?: boolean
+  onMobileDismiss?: () => void
 }) {
+  const [addPagesOpen, setAddPagesOpen] = useState(false)
+  const addPagesRef = useRef<HTMLDivElement>(null)
   // Insertion index for the top-level Add Pages button: append after last page
   const insertIndex = Math.max(0, pages.length - 1)
   const lastPage = pages[insertIndex]
 
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!addPagesRef.current?.contains(event.target as Node)) setAddPagesOpen(false)
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setAddPagesOpen(false)
+    }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [])
+
   return (
-    <aside className="page-sidebar">
+    <aside className={mobileOpen ? 'page-sidebar mobile-panel-open' : 'page-sidebar'}>
       {/* ── Sticky header with page count + Add Pages ── */}
       <div className="panel-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'sticky', top: 0, zIndex: 10, background: 'var(--sidebar-bg, #f8f9fa)' }}>
         <span>Pages <span className="count-badge">{pages.length}</span></span>
 
-        {/* Add pages dropdown — group-hover pattern preserved */}
-        <div className="relative group/addpages">
+        <button type="button" className="mobile-panel-close" onClick={onMobileDismiss} aria-label="Close pages panel"><X size={18} /></button>
+
+        <div ref={addPagesRef} className="relative">
           <button
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 whitespace-nowrap shadow-sm"
+            type="button"
+            className="flex w-full items-center gap-1 text-xs px-2 py-1 rounded border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 whitespace-nowrap shadow-sm"
             title="Add pages"
-            aria-haspopup="true"
+            aria-haspopup="menu"
+            aria-expanded={addPagesOpen}
+            aria-controls="add-pages-menu"
+            onClick={() => setAddPagesOpen((open) => !open)}
           >
             + Add pages <span className="text-[10px]">▾</span>
           </button>
-          <div className="absolute top-full left-0 mt-1 hidden group-hover/addpages:block bg-white border border-gray-200 rounded shadow-lg min-w-max py-1 z-20">
+          {addPagesOpen && <div id="add-pages-menu" role="menu" className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg min-w-max py-1 z-20">
             <button
+              type="button"
+              role="menuitem"
               className="w-full text-left px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
               onClick={(e) => {
                 e.stopPropagation()
@@ -110,20 +139,24 @@ export function PageSidebar({
                   height: lastPage?.height ?? 842,
                   rotation: 0,
                 })
+                setAddPagesOpen(false)
               }}
             >
               Blank page
             </button>
             <button
+              type="button"
+              role="menuitem"
               className="w-full text-left px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap"
               onClick={(e) => {
                 e.stopPropagation()
                 onImportFromFile(insertIndex)
+                setAddPagesOpen(false)
               }}
             >
               From file
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -158,7 +191,10 @@ export function PageSidebar({
               className={active === i ? 'thumbnail active' : 'thumbnail'}
               aria-label={`Go to page ${i + 1}`}
               aria-current={active === i ? 'page' : undefined}
-              onClick={() => onSelect(i)}
+              onClick={() => {
+                onSelect(i)
+                onMobileDismiss?.()
+              }}
             >
               <div className="thumbnail-paper">
                 {pdf && <Thumbnail pdf={pdf} page={page} />}

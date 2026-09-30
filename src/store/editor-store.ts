@@ -332,4 +332,10 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     }
   }
 })
-if (typeof window !== 'undefined') { (window as any).useEditorStore = useEditorStore; }
+declare global {
+  interface Window {
+    useEditorStore?: typeof useEditorStore
+  }
+}
+
+if (typeof window !== 'undefined') window.useEditorStore = useEditorStore

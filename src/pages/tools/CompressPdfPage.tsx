@@ -90,14 +90,14 @@ export function CompressPdfPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-8 w-full">
+    <div className="workspace-content tool-workflow">
       <header className="mb-8">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-4 transition-colors">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--text)] mb-4 transition-colors">
           <ArrowLeft size={16} />
           Back to home
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">Compress PDF</h1>
-        <p className="text-slate-500 text-sm">Reduce PDF size by removing redundant objects.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] mb-1">Compress PDF</h1>
+        <p className="text-[var(--muted)] text-sm">Reduce PDF size by removing redundant objects.</p>
       </header>
 
       {!file && (
@@ -105,40 +105,40 @@ export function CompressPdfPage() {
           {...dropzone.getRootProps()}
           className={`relative flex flex-col items-center justify-center p-10 mb-8 border-2 border-dashed rounded-3xl transition-all cursor-pointer group ${
             dropzone.isDragActive
-              ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-500/20'
-              : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50 hover:shadow-sm'
+              ? 'border-blue-500 bg-[var(--primary-soft)] ring-4 ring-blue-500/20'
+              : 'border-[var(--border)] bg-[var(--surface)] hover:border-blue-400 hover:bg-[var(--surface-muted)] hover:shadow-sm'
           }`}
         >
           <input {...dropzone.getInputProps()} />
-          <div className="bg-blue-100 text-blue-600 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
+          <div className="bg-[var(--primary-soft)] text-[var(--primary)] p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
             <UploadCloud size={24} />
           </div>
-          <div className="text-base text-slate-700 text-center mb-1">
-            <strong>Drop a PDF here</strong> <span className="font-normal text-slate-500">or click to browse</span>
+          <div className="text-base text-[var(--text)] text-center mb-1">
+            <strong>Drop a PDF here</strong> <span className="font-normal text-[var(--muted)]">or click to browse</span>
           </div>
-          <span className="text-xs font-medium text-slate-400">PDF files up to 50 MB</span>
+          <span className="text-xs font-medium text-[var(--muted)]">PDF files up to 50 MB</span>
         </div>
       )}
 
       {file && !result && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 max-w-xl mx-auto">
-          <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-100">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm p-6 mb-8 max-w-xl mx-auto">
+          <div className="flex items-center justify-between mb-6 pb-6 border-b border-[var(--border)]">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+              <div className="bg-[var(--primary-soft)] p-2 rounded-lg text-[var(--primary)]">
                 <FileText size={20} />
               </div>
               <div>
-                <div className="text-sm font-medium text-slate-900 truncate" title={file.name}>
+                <div className="text-sm font-medium text-[var(--text)] truncate" title={file.name}>
                   {file.name}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-[var(--muted)]">
                   {formatSize(file.size)}
                 </div>
               </div>
             </div>
             <button
               onClick={() => setFile(null)}
-              className="text-xs font-medium text-blue-600 hover:text-blue-800"
+              className="text-xs font-medium text-[var(--primary)] hover:text-blue-800"
             >
               Change file
             </button>
@@ -148,7 +148,7 @@ export function CompressPdfPage() {
             <button
               onClick={handleCompress}
               disabled={isProcessing}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none inline-flex items-center gap-2"
+              className="px-5 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none inline-flex items-center gap-2"
             >
               {isProcessing && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
               {isProcessing ? 'Compressing...' : 'Compress PDF'}
@@ -167,10 +167,10 @@ export function CompressPdfPage() {
             We reduced the size of your PDF by {((1 - savings.compressed / savings.original) * 100).toFixed(1)}%.
           </p>
           
-          <div className="flex items-center justify-center gap-8 mb-8 text-sm bg-white/60 px-6 py-4 rounded-xl border border-emerald-200/50">
+          <div className="flex items-center justify-center gap-8 mb-8 text-sm bg-[var(--surface)]/60 px-6 py-4 rounded-xl border border-emerald-200/50">
             <div>
               <div className="text-emerald-600 font-medium mb-1">Original Size</div>
-              <div className="text-slate-600 line-through">{formatSize(savings.original)}</div>
+              <div className="text-[var(--muted)] line-through">{formatSize(savings.original)}</div>
             </div>
             <div className="w-px h-8 bg-emerald-200/50" />
             <div>
@@ -182,7 +182,7 @@ export function CompressPdfPage() {
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
             <button
               onClick={handleDownload}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-sm font-medium rounded-xl shadow-sm transition-all"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--surface)] border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-sm font-medium rounded-xl shadow-sm transition-all"
             >
               <Download size={16} />
               Download

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { WorkspaceSidebar } from '../components/dashboard/WorkspaceSidebar'
 import Header from '../components/ui/Header'
+import { MobileBottomNav } from '../components/ui/MobileBottomNav'
 
 export function MainLayout() {
   return (
@@ -10,6 +11,7 @@ export function MainLayout() {
         <Header />
         <Outlet />
       </section>
+      <MobileBottomNav />
     </main>
   )
 }

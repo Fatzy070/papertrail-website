@@ -2,12 +2,16 @@ import { PDFDocument } from 'pdf-lib'
 import * as mupdf from 'mupdf'
 import fs from 'fs'
 
+type DestroyableMuPdfBuffer = {
+  destroy?: () => void
+}
+
 async function run() {
   console.log('--- MuPDF Buffer Detachment Diagnostic ---')
   const pdfBytes = fs.readFileSync('../backend/scripts/dummy.pdf')
 
   let outBuffer: Uint8Array
-  let mupdfBufferObj: any
+  let mupdfBufferObj: DestroyableMuPdfBuffer | undefined
 
   try {
     const baseDoc = mupdf.Document.openDocument(pdfBytes, 'application/pdf')
@@ -52,9 +56,9 @@ async function run() {
     console.log('Saving with pdf-lib...')
     const finalBytes = await pdf.save()
     console.log(`Saved successfully. Final bytes: ${finalBytes.byteLength}`)
-  } catch (e: any) {
-    console.error('PDF-Lib Error:', e.message)
-    console.error(e.stack)
+  } catch (e: unknown) {
+    console.error('PDF-Lib Error:', e instanceof Error ? e.message : e)
+    if (e instanceof Error) console.error(e.stack)
   }
   
   console.log('--- Test Independent Copy ---')
@@ -66,8 +70,8 @@ async function run() {
     page2.drawText('Safe Copy', { x: 50, y: 50, size: 24 })
     const finalBytes2 = await pdf2.save()
     console.log(`Independent copy saved successfully. Length: ${finalBytes2.byteLength}`)
-  } catch (e: any) {
-    console.error('Safe Copy Error:', e.message)
+  } catch (e: unknown) {
+    console.error('Safe Copy Error:', e instanceof Error ? e.message : e)
   }
 }
 

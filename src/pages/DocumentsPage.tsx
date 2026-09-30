@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { Dialog } from '../components/ui/Dialog'
 import { DocumentActions } from '../components/DocumentActions'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { documentsApi, type DocumentMetadata } from '../api/documents.api'
 import {
   useDeleteDocument,
@@ -126,17 +126,17 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
 
   return (
     <>
-      <div className="max-w-7xl mx-auto p-8 w-full">
+      <div className="workspace-content documents-page">
           <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">{pageInfo.title}</h1>
-              <p className="text-slate-500 text-sm">
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] mb-1">{pageInfo.title}</h1>
+              <p className="text-[var(--muted)] text-sm">
                 {pageInfo.description}
               </p>
             </div>
             {filter === 'all' && (
               <button
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                 disabled={upload.isPending}
                 onClick={dropzone.open}
               >
@@ -146,41 +146,42 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
             )}
           </header>
           
+          <nav className="document-views" aria-label="Document views">{[{to:'/documents',label:'All documents'},{to:'/recent',label:'Recent'},{to:'/starred',label:'Starred'},{to:'/trash',label:'Trash'}].map(view=><NavLink key={view.to} to={view.to}>{view.label}</NavLink>)}</nav>
           {filter === 'all' && (
             <div
               {...dropzone.getRootProps()}
               className={`relative flex flex-col items-center justify-center p-10 mb-8 border-2 border-dashed rounded-3xl transition-all cursor-pointer group ${
                 dropzone.isDragActive 
-                  ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-500/20' 
-                  : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50 hover:shadow-sm'
+                  ? 'border-blue-500 bg-[var(--primary-soft)] ring-4 ring-blue-500/20' 
+                  : 'border-[var(--border)] bg-[var(--surface)] hover:border-blue-400 hover:bg-[var(--surface-muted)] hover:shadow-sm'
               }`}
             >
               <input {...dropzone.getInputProps()} />
-              <div className="bg-blue-100 text-blue-600 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
+              <div className="bg-[var(--primary-soft)] text-[var(--primary)] p-3 rounded-full mb-3 group-hover:scale-110 transition-transform">
                 <UploadCloud size={24} />
               </div>
-              <div className="text-base text-slate-700 text-center mb-1">
+              <div className="text-base text-[var(--text)] text-center mb-1">
                 <strong>
                   {upload.isPending
                     ? 'Uploading your document…'
                     : 'Drop a PDF here'}
                 </strong>{' '}
-                <span className="font-normal text-slate-500">or click to browse</span>
+                <span className="font-normal text-[var(--muted)]">or click to browse</span>
               </div>
-              <span className="text-xs font-medium text-slate-400">PDF files · up to 50 MB</span>
+              <span className="text-xs font-medium text-[var(--muted)]">PDF files · up to 50 MB</span>
             </div>
           )}
           
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{documents.data?.length ?? 0} documents</span>
+            <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-wider">{documents.data?.length ?? 0} documents</span>
             <label className="relative group flex items-center w-full sm:w-auto">
-              <Search size={14} className="absolute left-3 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              <Search size={14} className="absolute left-3 text-[var(--muted)] group-focus-within:text-[var(--primary)] transition-colors" />
               <input
                 aria-label="Search documents"
                 placeholder="Search documents…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 w-full sm:w-64 bg-white border border-slate-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm text-slate-900 placeholder:text-slate-400"
+                className="pl-9 pr-4 py-2 w-full sm:w-64 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm text-[var(--text)] placeholder:text-[var(--muted)]"
               />
             </label>
           </div>
@@ -195,30 +196,30 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
             <div className="flex items-center justify-between p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl shadow-sm" role="alert">
               <span className="font-medium text-sm">Could not load your documents.</span>
               <button
-                className="px-3 py-1.5 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+                className="px-3 py-1.5 bg-[var(--surface)] text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
                 onClick={() => void documents.refetch()}
               >
                 Try again
               </button>
             </div>
           ) : !filtered.length ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-slate-200 shadow-sm">
-              <div className="bg-slate-100 text-slate-400 p-4 rounded-full mb-4">
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-[var(--surface)] rounded-3xl border border-[var(--border)] shadow-sm">
+              <div className="bg-[var(--surface-muted)] text-[var(--muted)] p-4 rounded-full mb-4">
                 <FolderOpen size={32} />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">
+              <h2 className="text-xl font-bold text-[var(--text)] mb-2">
                 {search
                   ? 'No matching documents'
                   : pageInfo.emptyTitle}
               </h2>
-              <p className="text-slate-500 text-sm mb-6 max-w-sm">
+              <p className="text-[var(--muted)] text-sm mb-6 max-w-sm">
                 {search
                   ? 'Try searching for a different filename.'
                   : pageInfo.emptyDesc}
               </p>
               {!search && filter === 'all' && (
                 <button 
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95" 
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95" 
                   onClick={dropzone.open}
                 >
                   <UploadCloud size={16} /> Upload a PDF
@@ -226,43 +227,43 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
               <div className='overflow-y-auto no-scrollbar'>
                 <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr>
-                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase bg-slate-50/80 border-b border-slate-200">Name</th>
-                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase bg-slate-50/80 border-b border-slate-200 hidden sm:table-cell">Updated</th>
-                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase bg-slate-50/80 border-b border-slate-200 hidden md:table-cell">Pages</th>
-                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase bg-slate-50/80 border-b border-slate-200 hidden sm:table-cell">Size</th>
-                      <th className="px-5 py-3 border-b border-slate-200 bg-slate-50/80 w-16" aria-label="Actions" />
+                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-[var(--muted)] uppercase bg-[var(--surface-muted)]/80 border-b border-[var(--border)]">Name</th>
+                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-[var(--muted)] uppercase bg-[var(--surface-muted)]/80 border-b border-[var(--border)] hidden sm:table-cell">Updated</th>
+                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-[var(--muted)] uppercase bg-[var(--surface-muted)]/80 border-b border-[var(--border)] hidden md:table-cell">Pages</th>
+                      <th className="px-5 py-3 text-[11px] font-bold tracking-wider text-[var(--muted)] uppercase bg-[var(--surface-muted)]/80 border-b border-[var(--border)] hidden sm:table-cell">Size</th>
+                      <th className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface-muted)]/80 w-16" aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filtered.map((document) => (
-                      <tr key={document.id} className="hover:bg-slate-50 transition-colors group">
+                      <tr key={document.id} className="hover:bg-[var(--surface-muted)] transition-colors group">
                         <td className="px-5 py-3">
                           <button
-                            className="flex items-center gap-3 text-slate-900 font-medium hover:text-blue-600 transition-colors text-left truncate max-w-xs md:max-w-md lg:max-w-lg"
+                            className="flex items-center gap-3 text-[var(--text)] font-medium hover:text-[var(--primary)] transition-colors text-left truncate max-w-xs md:max-w-md lg:max-w-lg"
                             onClick={() =>
                               navigate(`/documents/${document.id}/edit`)
                             }
                           >
-                            <span className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 shrink-0 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                            <span className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 shrink-0 group-hover:bg-[var(--primary-soft)] group-hover:text-[var(--primary)] transition-colors">
                               <FileText size={16} />
                             </span>
                             <span title={document.name} className="truncate text-sm">{document.name}</span>
                             {document.isStarred && <Star size={14} className="text-yellow-500 shrink-0 ml-1 fill-yellow-500" />}
                           </button>
                         </td>
-                        <td className="px-5 py-3 text-sm text-slate-500 hidden sm:table-cell">
+                        <td className="px-5 py-3 text-sm text-[var(--muted)] hidden sm:table-cell">
                           {new Date(document.updatedAt).toLocaleDateString(
                             undefined,
                             { month: 'short', day: 'numeric', year: 'numeric' },
                           )}
                         </td>
-                        <td className="px-5 py-3 text-sm text-slate-500 hidden md:table-cell">{document.pageCount ?? '—'}</td>
-                        <td className="px-5 py-3 text-sm text-slate-500 hidden sm:table-cell">{formatSize(document.size)}</td>
+                        <td className="px-5 py-3 text-sm text-[var(--muted)] hidden md:table-cell">{document.pageCount ?? '—'}</td>
+                        <td className="px-5 py-3 text-sm text-[var(--muted)] hidden sm:table-cell">{formatSize(document.size)}</td>
                         <td className="px-5 py-3 text-right">
                           <DocumentActions
                             document={document}
@@ -303,25 +304,25 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
             }}
             className="mt-5"
           >
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text)] mb-1">
               Document name
             </label>
             <input
               autoFocus
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all mb-5 text-slate-900"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all mb-5 text-[var(--text)]"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
               <button
                 type="button"
-                className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 transition-colors"
+                className="px-3 py-2 text-sm font-medium text-[var(--text)] bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-muted)] focus:outline-none focus:ring-2 focus:ring-slate-200 transition-colors"
                 onClick={() => setRenaming(null)}
               >
                 Cancel
               </button>
               <button
-                className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+                className="px-3 py-2 text-sm font-medium text-white bg-[var(--primary)] rounded-lg hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
                 disabled={rename.isPending || !newName.trim()}
               >
                 Save name
@@ -336,9 +337,9 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
           description={filter === 'trash' ? `“${deleting.name}” and its version history will be permanently deleted.` : `“${deleting.name}” will be moved to the trash.`}
           onClose={() => setDeleting(null)}
         >
-          <div className="flex justify-end gap-2 pt-5 mt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-5 mt-2 border-t border-[var(--border)]">
             <button
-              className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 transition-colors"
+              className="px-3 py-2 text-sm font-medium text-[var(--text)] bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-muted)] focus:outline-none focus:ring-2 focus:ring-slate-200 transition-colors"
               onClick={() => setDeleting(null)}
             >
               Cancel

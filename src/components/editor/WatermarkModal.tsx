@@ -54,22 +54,22 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Watermark</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+          <h2 className="font-semibold text-[var(--text)]">Watermark</h2>
+          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--muted)]">✕</button>
         </div>
 
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-[var(--border)]">
           <button 
-            className={`flex-1 py-3 text-sm font-medium ${tab === 'text' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} 
+            className={`flex-1 py-3 text-sm font-medium ${tab === 'text' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-[var(--muted)] hover:bg-[var(--surface-hover)]'}`} 
             onClick={() => setTab('text')}
           >
             Text
           </button>
           <button 
-            className={`flex-1 py-3 text-sm font-medium ${tab === 'image' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`} 
+            className={`flex-1 py-3 text-sm font-medium ${tab === 'image' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-[var(--muted)] hover:bg-[var(--surface-hover)]'}`} 
             onClick={() => setTab('image')}
           >
             Image
@@ -80,17 +80,17 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
           {tab === 'text' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                <label className="block text-sm font-medium text-[var(--muted)] mb-1">Text</label>
                 <input 
                   type="text" 
                   value={text}
                   onChange={e => setText(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full border border-[var(--border)] rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   placeholder="e.g. CONFIDENTIAL"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                <label className="block text-sm font-medium text-[var(--muted)] mb-2">Color</label>
                 <div className="flex gap-2">
                   {['#ff0000', '#000000', '#2563eb', '#16a34a', '#a8a29e'].map(c => (
                     <button
@@ -113,19 +113,19 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
 
           {tab === 'image' && (
             <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image</label>
+              <label className="block text-sm font-medium text-[var(--muted)] mb-1">Upload Image</label>
               {!imageUrl ? (
-                <label className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-blue-500 transition-colors">
+                <label className="border-2 border-dashed border-[var(--border)] rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-hover)] hover:border-blue-500 transition-colors">
                   <span className="text-sm font-medium text-blue-600 mb-1">Click to upload</span>
-                  <span className="text-xs text-gray-500">PNG, JPG up to 5MB</span>
+                  <span className="text-xs text-[var(--muted)]">PNG, JPG up to 5MB</span>
                   <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleImageUpload} />
                 </label>
               ) : (
-                <div className="relative border border-gray-200 rounded-lg p-4 flex items-center justify-center bg-gray-50 min-h-[120px]">
+                <div className="relative border border-[var(--border)] rounded-lg p-4 flex items-center justify-center bg-gray-50 min-h-[120px]">
                   <img src={imageUrl} alt="Watermark" className="max-h-32 object-contain" />
                   <button 
                     onClick={() => { setImageUrl(null); setImageBytes(null) }}
-                    className="absolute top-2 right-2 bg-white/90 shadow rounded-full w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-white transition-colors"
+                    className="absolute top-2 right-2 bg-[var(--surface)]/90 shadow rounded-full w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-[var(--surface)] transition-colors"
                   >
                     ✕
                   </button>
@@ -134,11 +134,11 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
             </div>
           )}
 
-          <div className="mt-8 space-y-6 border-t border-gray-100 pt-6">
+          <div className="mt-8 space-y-6 border-t border-[var(--border)] pt-6">
             <div>
               <div className="flex justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700">Opacity</label>
-                <span className="text-sm text-gray-500">{Math.round(opacity * 100)}%</span>
+                <label className="text-sm font-medium text-[var(--muted)]">Opacity</label>
+                <span className="text-sm text-[var(--muted)]">{Math.round(opacity * 100)}%</span>
               </div>
               <input 
                 type="range" min="0.1" max="1" step="0.05" 
@@ -149,8 +149,8 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
             
             <div>
               <div className="flex justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700">Scale</label>
-                <span className="text-sm text-gray-500">{Math.round(scale * 100)}%</span>
+                <label className="text-sm font-medium text-[var(--muted)]">Scale</label>
+                <span className="text-sm text-[var(--muted)]">{Math.round(scale * 100)}%</span>
               </div>
               <input 
                 type="range" min="0.1" max="3" step="0.1" 
@@ -161,8 +161,8 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
 
             <div>
               <div className="flex justify-between mb-1">
-                <label className="text-sm font-medium text-gray-700">Rotation</label>
-                <span className="text-sm text-gray-500">{rotation}°</span>
+                <label className="text-sm font-medium text-[var(--muted)]">Rotation</label>
+                <span className="text-sm text-[var(--muted)]">{rotation}°</span>
               </div>
               <input 
                 type="range" min="0" max="360" step="15" 
@@ -174,7 +174,7 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
 
         </div>
 
-        <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-between">
+        <div className="p-4 bg-gray-50 border-t border-[var(--border)] flex justify-between">
           <div>
             {onRemove && (
               <button 
@@ -188,7 +188,7 @@ export function WatermarkModal({ initialConfig, onClose, onSave, onRemove }: Pro
           <div className="flex gap-2">
             <button 
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>

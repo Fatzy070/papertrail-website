@@ -10,38 +10,35 @@ export interface PendingExport {
   documentPath: string; // e.g. /documents/abc123/edit
 }
 
+function readPendingExport(): PendingExport | null {
+  try {
+    const raw = localStorage.getItem(PENDING_EXPORT_KEY);
+    return raw ? JSON.parse(raw) as PendingExport : null;
+  } catch {
+    return null;
+  }
+}
+
 export function BillingCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const verifyMutation = useVerifyTransaction();
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [pendingExport, setPendingExport] = useState<PendingExport | null>(null);
+  const reference = searchParams.get('reference');
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>(() => reference ? 'verifying' : 'error');
+  const [errorMessage, setErrorMessage] = useState(() => reference ? '' : 'No payment reference found.');
+  const [pendingExport] = useState<PendingExport | null>(readPendingExport);
   const didVerify = useRef(false);
 
   useEffect(() => {
     if (didVerify.current) return;
     didVerify.current = true;
 
-    const reference = searchParams.get('reference');
     if (!reference) {
-      setStatus('error');
-      setErrorMessage('No payment reference found.');
       return;
     }
 
-    // Read pending export intent saved before Paystack redirect
-    let pending: PendingExport | null = null;
-    try {
-      const raw = localStorage.getItem(PENDING_EXPORT_KEY);
-      if (raw) pending = JSON.parse(raw) as PendingExport;
-    } catch {
-      // ignore parse errors
-    }
-    setPendingExport(pending);
-
     verifyMutation.mutate(
-      { reference, documentId: pending?.documentId },
+      { reference, documentId: pendingExport?.documentId },
       {
         onSuccess: () => {
           setStatus('success');

@@ -22,7 +22,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className=" md:w-[50%] m-auto p-6 border border-[var(--border)] rounded-[17px] bg-[var(--surface-raised)] text-[var(--text)] shadow-[var(--shadow-lg)] backdrop:bg-[#090d148f] backdrop:backdrop-blur-[4px]"
+      className="app-dialog"
       aria-labelledby={id}
       onCancel={(event) => {
         event.preventDefault()
