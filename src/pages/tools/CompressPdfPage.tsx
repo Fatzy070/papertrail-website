@@ -50,14 +50,30 @@ export function CompressPdfPage() {
       const pdfBytes = await pdfDoc.save({ useObjectStreams: true })
       const compressedBytesLength = pdfBytes.byteLength
 
-      if (compressedBytesLength < originalBytesLength) {
-        const newFile = new File([pdfBytes as unknown as BlobPart], `compressed_${file.name}`, { type: 'application/pdf' })
-        setResult(newFile)
-        setSavings({ original: originalBytesLength, compressed: compressedBytesLength })
-        showToast('PDF compressed successfully!', 'success')
+      const isLargerOrEqual = compressedBytesLength >= originalBytesLength;
+      
+      let finalFile: File;
+      let finalCompressedSize: number;
+
+      if (isLargerOrEqual) {
+        finalFile = file;
+        finalCompressedSize = originalBytesLength;
       } else {
-        showToast('This PDF is already highly optimized and cannot be compressed further.', 'error')
-        setFile(null)
+        finalFile = new File([pdfBytes as unknown as BlobPart], `compressed_${file.name}`, { type: 'application/pdf' });
+        finalCompressedSize = compressedBytesLength;
+      }
+
+      setResult(finalFile);
+      setSavings({ original: originalBytesLength, compressed: finalCompressedSize });
+      
+      const reductionPercent = originalBytesLength > 0 ? ((originalBytesLength - finalCompressedSize) / originalBytesLength) * 100 : 0;
+      
+      if (isLargerOrEqual) {
+        showToast('This PDF could not be reduced further.', 'info');
+      } else if (reductionPercent < 1) {
+        showToast('This PDF is already well optimized.', 'info');
+      } else {
+        showToast('PDF compressed successfully!', 'success');
       }
     } catch (e) {
       console.error(e)
@@ -162,10 +178,40 @@ export function CompressPdfPage() {
           <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
             <Minimize2 size={32} />
           </div>
-          <h2 className="text-xl font-bold text-emerald-900 mb-2">Compression Successful!</h2>
-          <p className="text-emerald-700 text-sm mb-6">
-            We reduced the size of your PDF by {((1 - savings.compressed / savings.original) * 100).toFixed(1)}%.
-          </p>
+          {(() => {
+            const reductionPercent = savings.original > 0 ? ((savings.original - savings.compressed) / savings.original) * 100 : 0;
+            const isLargerOrEqual = savings.compressed >= savings.original;
+            const isNegligible = !isLargerOrEqual && reductionPercent < 1;
+
+            if (isLargerOrEqual) {
+              return (
+                <>
+                  <h2 className="text-xl font-bold text-emerald-900 mb-2">Already Optimized</h2>
+                  <p className="text-emerald-700 text-sm mb-6">
+                    This PDF could not be reduced further.
+                  </p>
+                </>
+              );
+            }
+            if (isNegligible) {
+              return (
+                <>
+                  <h2 className="text-xl font-bold text-emerald-900 mb-2">Already Well Optimized</h2>
+                  <p className="text-emerald-700 text-sm mb-6">
+                    We couldn't reduce its size significantly without affecting quality. (Reduced by {reductionPercent.toFixed(2)}%)
+                  </p>
+                </>
+              );
+            }
+            return (
+              <>
+                <h2 className="text-xl font-bold text-emerald-900 mb-2">Compression Successful!</h2>
+                <p className="text-emerald-700 text-sm mb-6">
+                  We reduced the size of your PDF by {reductionPercent.toFixed(1)}%.
+                </p>
+              </>
+            );
+          })()}
           
           <div className="flex items-center justify-center gap-8 mb-8 text-sm bg-[var(--surface)]/60 px-6 py-4 rounded-xl border border-emerald-200/50">
             <div>

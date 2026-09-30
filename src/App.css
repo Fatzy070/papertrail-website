@@ -302,11 +302,18 @@ button:disabled {
 .brand-mark {
   width: 32px;
   height: 32px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 9px;
-  background: var(--text);
-  color: var(--surface);
+  overflow: hidden;
+  background: transparent;
+}
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .brand-dot {
   color: var(--primary);

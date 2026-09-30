@@ -1,7 +1,8 @@
 import { AuthStory } from './AuthStory'
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import type { Variants } from 'framer-motion'
 import { Brand } from '../ui/Brand'
 import { LoginStep } from './steps/LoginStep'
 import { RegisterStep } from './steps/RegisterStep'
@@ -12,17 +13,12 @@ import { ThemeToggle } from '../ui/ThemeToggle'
 
 export type AuthStepType = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password'
 
-const variants = {
-  enter: { opacity: 0, y: 10 },
-  center: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 }
-}
-
 export function AuthShell() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const urlEmail = searchParams.get('email')
-  const [email, setEmailState] = useState(urlEmail || '')
+  const location = useLocation()
+  const stateEmail = location.state?.email || sessionStorage.getItem('papertrail_pending_verification_email') || ''
+  const [email, setEmailState] = useState(stateEmail)
 
   const [step, setStepState] = useState<AuthStepType>(() => {
     const stepParam = searchParams.get('step') as AuthStepType
@@ -46,42 +42,77 @@ export function AuthShell() {
     
     setSearchParams((prev) => {
       prev.set('step', newStep)
-      if (email) {
-        prev.set('email', email)
-      } else {
-        prev.delete('email')
-      }
+      prev.delete('email')
       return prev
-    }, { replace: true })
+    }, { replace: true, state: { email } })
   }
 
   const handleEmailChange = (newEmail: string) => {
     setEmailState(newEmail)
+    if (newEmail) {
+      sessionStorage.setItem('papertrail_pending_verification_email', newEmail)
+    } else {
+      sessionStorage.removeItem('papertrail_pending_verification_email')
+    }
     setSearchParams((prev) => {
-      if (newEmail) prev.set('email', newEmail)
-      else prev.delete('email')
+      prev.set('step', step)
+      prev.delete('email')
       return prev
-    }, { replace: true })
+    }, { replace: true, state: { email: newEmail } })
+  }
+
+  const shouldReduceMotion = useReducedMotion()
+  
+  const stepVariants: Variants = {
+    enter: { opacity: 0, y: shouldReduceMotion ? 0 : 10 },
+    center: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: shouldReduceMotion ? 0 : -10 }
+  }
+
+  const layoutVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        duration: 0.3
+      }
+    }
+  }
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 15 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
   }
 
   return (
-    <main className="auth-layout">
-      <header className="auth-header">
+    <motion.main 
+      className="auth-layout"
+      variants={layoutVariants}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.header variants={itemVariants} className="auth-header">
         <Link to="/">
           <Brand />
         </Link>
         <span>Your document workspace</span>
         <ThemeToggle />
-      </header>
-      <AuthStory /><section className="auth-card overflow-hidden">
+      </motion.header>
+      
+      <motion.div variants={itemVariants} className="contents">
+        <AuthStory />
+      </motion.div>
+
+      <motion.section variants={itemVariants} className="auth-card overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            variants={variants}
+            variants={stepVariants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
           >
             {step === 'login' && (
               <LoginStep
@@ -125,10 +156,11 @@ export function AuthShell() {
             )}
           </motion.div>
         </AnimatePresence>
-      </section>
-      <footer className="auth-footer">
+      </motion.section>
+      
+      <motion.footer variants={itemVariants} className="auth-footer">
         A little less paperwork. A little more progress.
-      </footer>
-    </main>
+      </motion.footer>
+    </motion.main>
   )
 }

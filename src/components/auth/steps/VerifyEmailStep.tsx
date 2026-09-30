@@ -5,6 +5,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { authKeys } from '../../../hooks/use-auth'
 import { useNavigate } from 'react-router-dom'
 import { CodeBoxes } from '../CodeBoxes'
+import { useToastStore } from '../../../store/toast-store'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 
 export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBackToLogin: () => void }) {
   const [code, setCode] = useState('')
@@ -14,6 +16,8 @@ export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBac
   const logout = useLogout()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const showToast = useToastStore((state) => state.show)
+  const shouldReduceMotion = useReducedMotion()
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -21,10 +25,10 @@ export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBac
       await verify.mutateAsync({ email, code })
       setSuccess(true)
       // Refetch current user to update emailVerified status and unblock the route
-      setTimeout(() => {
+      window.setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: authKeys.current })
         navigate('/dashboard')
-      }, 1500)
+      }, shouldReduceMotion ? 0 : 650)
     } catch {
       // Error is displayed by the hook/api globally or we could show it inline
     }
@@ -34,85 +38,114 @@ export function VerifyEmailStep({ email, onBackToLogin }: { email: string, onBac
     try {
       if (email) {
         await resend.mutateAsync({ email })
-        alert('Verification code resent!')
+        showToast('Verification code resent!', 'success')
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to resend code')
+      showToast(err instanceof Error ? err.message : 'Failed to resend code', 'error')
     }
   }
 
   async function handleSignOut() {
+    sessionStorage.removeItem('papertrail_pending_verification_email')
     await logout.mutateAsync()
     onBackToLogin()
   }
 
-  if (success) {
-    return (
-      <div className="text-center">
-        <CheckCircle2 size={48} className="text-green-500 mb-4 mx-auto" />
-        <h1>Email verified</h1>
-        <p className="muted">
-          Redirecting you to your workspace...
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <>
-      <div className="auth-symbol">
-        <ArrowRight size={22} />
-      </div>
-      <h1>Verify your email</h1>
-      <p className="muted">
-        We sent a 6-digit code to <strong>{email}</strong>. Enter it below to access your workspace.
-      </p>
-      
-      <form onSubmit={(e) => void submit(e)} className="auth-form">
-        <label className="field-label">
-          Verification code
-          <CodeBoxes value={code} onChange={setCode} disabled={verify.isPending} />
-        </label>
-
-        {verify.error && (
-          <p role="alert" className="error-message">
-            {verify.error.message}
+    <AnimatePresence mode="wait">
+      {success ? (
+        <motion.div 
+          key="success" 
+          initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.95 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          exit={{ opacity: 0 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.24 }}
+          className="auth-transition-success"
+        >
+          <CheckCircle2 size={48} className="text-green-500 mb-4 mx-auto" />
+          <h1>Email verified</h1>
+          <p className="muted">
+            Redirecting you to your workspace...
           </p>
-        )}
-        
-        <button
-          className="primary-button auth-submit"
-          disabled={verify.isPending || code.length < 6}
+        </motion.div>
+      ) : !email ? (
+        <motion.div 
+          key="missing" 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }}
+          className="text-center"
         >
-          {verify.isPending ? (
-            <LoaderCircle size={16} className="animate-spin" />
-          ) : null}
-          Verify email
-          <ArrowRight size={16} />
-        </button>
-      </form>
-      
-      <p className="auth-switch mt-6">
-        Didn't receive it?{' '}
-        <button 
-          type="button" 
-          onClick={() => void handleResend()} 
-          disabled={resend.isPending}
-          className="auth-link-button"
+          <h1>Missing email</h1>
+          <p className="muted mb-6">
+            We couldn't determine which email to verify. Please try signing in again.
+          </p>
+          <button className="primary-button mx-auto" onClick={onBackToLogin}>
+            Back to login
+          </button>
+        </motion.div>
+      ) : (
+        <motion.div 
+          key="form"
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }}
         >
-          {resend.isPending ? 'Sending...' : 'Resend code'}
-        </button>
-      </p>
+          <div className="auth-symbol">
+            <ArrowRight size={22} />
+          </div>
+          <h1>Verify your email</h1>
+          <p className="muted">
+            We sent a 6-digit code to <strong>{email}</strong>. Enter it below to access your workspace.
+          </p>
+          
+          <form onSubmit={(e) => void submit(e)} className="auth-form">
+            <label className="field-label">
+              Verification code
+              <CodeBoxes value={code} onChange={setCode} disabled={verify.isPending} />
+            </label>
 
-      <div className="text-center mt-4">
-        <button 
-          type="button" 
-          onClick={() => void handleSignOut()} 
-          className="auth-link-button subtle"
-        >
-          Sign in as a different user
-        </button>
-      </div>
-    </>
+            {verify.error && (
+              <p role="alert" className="error-message">
+                {verify.error.message}
+              </p>
+            )}
+            
+            <button
+              className="primary-button auth-submit"
+              disabled={verify.isPending || code.length < 6}
+            >
+              {verify.isPending ? (
+                <LoaderCircle size={16} className="animate-spin" />
+              ) : null}
+              Verify email
+              <ArrowRight size={16} />
+            </button>
+          </form>
+          
+          <p className="auth-switch mt-6">
+            Didn't receive it?{' '}
+            <button 
+              type="button" 
+              onClick={() => void handleResend()} 
+              disabled={resend.isPending}
+              className="auth-link-button"
+            >
+              {resend.isPending ? 'Sending...' : 'Resend code'}
+            </button>
+          </p>
+
+          <div className="text-center mt-4">
+            <button 
+              type="button" 
+              onClick={() => void handleSignOut()} 
+              className="auth-link-button subtle"
+            >
+              Sign in as a different user
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

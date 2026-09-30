@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight, Eye, EyeOff, LoaderCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useRegister } from '../../../hooks/use-auth'
+import { motion, useReducedMotion } from 'framer-motion'
 
 export function RegisterStep({ 
   onSwitchMode, 
@@ -13,16 +14,35 @@ export function RegisterStep({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [visible, setVisible] = useState(false)
+  const [isCompleting, setIsCompleting] = useState(false)
   const register = useRegister()
+  const shouldReduceMotion = useReducedMotion()
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     try {
       await register.mutateAsync({ name, email, password })
-      onSuccess(email)
+      setIsCompleting(true)
+      window.setTimeout(() => onSuccess(email), shouldReduceMotion ? 0 : 220)
     } catch {
       // Error handled by hook
     }
+  }
+
+  if (isCompleting) {
+    return (
+      <motion.div
+        className="auth-transition-success"
+        initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.18 }}
+        aria-live="polite"
+      >
+        <CheckCircle2 aria-hidden="true" />
+        <h1>Check your inbox.</h1>
+        <p className="muted">We’ve sent a verification code to continue.</p>
+      </motion.div>
+    )
   }
 
   return (

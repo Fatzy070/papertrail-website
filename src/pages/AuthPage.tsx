@@ -1,13 +1,75 @@
-import { AuthStory } from '../components/auth/AuthStory'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
-import { Brand } from '../components/ui/Brand'
+import { AuthStory } from '../components/auth/AuthStory'
 import { LoginStep } from '../components/auth/steps/LoginStep'
 import { RegisterStep } from '../components/auth/steps/RegisterStep'
+import { Brand } from '../components/ui/Brand'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const navigate = useNavigate()
-  return <main className="auth-layout"><header className="auth-header"><Link to="/"><Brand /></Link><span>Your document workspace</span><ThemeToggle /></header><AuthStory /><section className="auth-card">
-    {mode === 'login' ? <LoginStep onSwitchMode={() => navigate('/register')} onForgotPassword={() => navigate('/forgot-password')} onNeedsVerification={(email) => navigate(`/verify-email?email=${encodeURIComponent(email)}`)} /> : <RegisterStep onSwitchMode={() => navigate('/login')} onSuccess={(email) => navigate(`/verify-email?email=${encodeURIComponent(email)}`)} />}
-  </section><footer className="auth-footer">A little less paperwork. A little more progress.</footer></main>
+  const shouldReduceMotion = useReducedMotion()
+  const entranceOffset = shouldReduceMotion ? 0 : 14
+
+  function continueToVerification(email: string) {
+    sessionStorage.setItem('papertrail_pending_verification_email', email)
+    navigate('/verify-email', { state: { email } })
+  }
+
+  return (
+    <motion.main
+      className="auth-layout"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+    >
+      <motion.header
+        className="auth-header"
+        initial={{ opacity: 0, y: -entranceOffset }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.28, ease: 'easeOut' }}
+      >
+        <Link to="/"><Brand /></Link>
+        <span>Your document workspace</span>
+        <ThemeToggle />
+      </motion.header>
+
+      <motion.div
+        initial={{ opacity: 0, x: -entranceOffset }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.36, delay: 0.06, ease: 'easeOut' }}
+      >
+        <AuthStory />
+      </motion.div>
+
+      <motion.section
+        className="auth-card"
+        initial={{ opacity: 0, y: entranceOffset, scale: shouldReduceMotion ? 1 : 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.34, delay: 0.1, ease: 'easeOut' }}
+      >
+        {mode === 'login' ? (
+          <LoginStep
+            onSwitchMode={() => navigate('/register')}
+            onForgotPassword={() => navigate('/forgot-password')}
+            onNeedsVerification={continueToVerification}
+          />
+        ) : (
+          <RegisterStep
+            onSwitchMode={() => navigate('/login')}
+            onSuccess={continueToVerification}
+          />
+        )}
+      </motion.section>
+
+      <motion.footer
+        className="auth-footer"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.25, delay: 0.18 }}
+      >
+        A little less paperwork. A little more progress.
+      </motion.footer>
+    </motion.main>
+  )
 }
