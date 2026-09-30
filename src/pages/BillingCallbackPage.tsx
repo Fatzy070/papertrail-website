@@ -1,117 +1,162 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useVerifyTransaction } from '../hooks/use-billing';
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Check, CheckCircle2, Download, Loader2, XCircle } from 'lucide-react'
+import { useVerifyTransaction } from '../hooks/use-billing'
 
-const PENDING_EXPORT_KEY = 'papertrail_pending_export';
+const PENDING_EXPORT_KEY = 'papertrail_pending_export'
 
 export interface PendingExport {
-  documentId: string;
-  documentPath: string; // e.g. /documents/abc123/edit
+  documentId: string
+  documentPath: string
 }
 
 function readPendingExport(): PendingExport | null {
   try {
-    const raw = localStorage.getItem(PENDING_EXPORT_KEY);
-    return raw ? JSON.parse(raw) as PendingExport : null;
+    const raw = localStorage.getItem(PENDING_EXPORT_KEY)
+    return raw ? JSON.parse(raw) as PendingExport : null
   } catch {
-    return null;
+    return null
   }
 }
 
 export function BillingCallbackPage() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const verifyMutation = useVerifyTransaction();
-  const reference = searchParams.get('reference');
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>(() => reference ? 'verifying' : 'error');
-  const [errorMessage, setErrorMessage] = useState(() => reference ? '' : 'No payment reference found.');
-  const [pendingExport] = useState<PendingExport | null>(readPendingExport);
-  const didVerify = useRef(false);
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const verifyMutation = useVerifyTransaction()
+  const reference = searchParams.get('reference')
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>(
+    () => (reference ? 'verifying' : 'error'),
+  )
+  const [errorMessage, setErrorMessage] = useState(
+    () => (reference ? '' : 'No payment reference found.'),
+  )
+  const [pendingExport] = useState<PendingExport | null>(readPendingExport)
+  const didVerify = useRef(false)
 
   useEffect(() => {
-    if (didVerify.current) return;
-    didVerify.current = true;
+    if (didVerify.current) return
+    didVerify.current = true
 
-    if (!reference) {
-      return;
-    }
+    if (!reference) return
 
     verifyMutation.mutate(
       { reference, documentId: pendingExport?.documentId },
       {
         onSuccess: () => {
-          setStatus('success');
-          // Clear pending intent now that verification succeeded
-          localStorage.removeItem(PENDING_EXPORT_KEY);
+          setStatus('success')
+          localStorage.removeItem(PENDING_EXPORT_KEY)
         },
-        onError: (err: unknown) => {
-          setStatus('error');
-          setErrorMessage(
-            err instanceof Error ? err.message : 'Payment verification failed.',
-          );
+        onError: (error: unknown) => {
+          setStatus('error')
+          setErrorMessage(error instanceof Error ? error.message : 'Payment verification failed.')
         },
       },
-    );
+    )
+    // Verification must run once for the payment-provider return URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [])
 
   function handleContinue() {
     if (pendingExport) {
-      // Return to the editor with a signal to auto-download
-      navigate(`${pendingExport.documentPath}?autoDownload=1`, { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
+      navigate(`${pendingExport.documentPath}?autoDownload=1`, { replace: true })
+      return
     }
+
+    navigate('/dashboard', { replace: true })
   }
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-gray-50/50">
-      <div className="w-full max-w-md rounded-xl border bg-white p-8 shadow-sm text-center">
-        {status === 'verifying' && (
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-            <h2 className="text-xl font-semibold">Verifying your payment</h2>
-            <p className="text-sm text-gray-500">Please wait while we confirm your transaction...</p>
-          </div>
-        )}
-
+    <main className="payment-callback" aria-live="polite">
+      <section className="payment-callback-card">
+        {status === 'verifying' && <VerifyingState />}
         {status === 'success' && (
-          <div className="flex flex-col items-center gap-4">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <h2 className="text-xl font-semibold">Payment Successful!</h2>
-            <p className="text-sm text-gray-500">Your access has been unlocked.</p>
-            <button
-              className="mt-4 w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-              onClick={handleContinue}
-            >
-              {pendingExport ? 'Continue & Download' : 'Return to Dashboard'}
-            </button>
-          </div>
+          <SuccessState pendingExport={Boolean(pendingExport)} onContinue={handleContinue} />
         )}
-
         {status === 'error' && (
-          <div className="flex flex-col items-center gap-4">
-            <XCircle className="h-12 w-12 text-red-500" />
-            <h2 className="text-xl font-semibold">Verification Failed</h2>
-            <p className="text-sm text-red-600">{errorMessage}</p>
-            <div className="mt-4 flex w-full gap-3">
-              <button
-                className="w-full rounded border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
-                onClick={() => navigate('/dashboard')}
-              >
-                Go to Dashboard
-              </button>
-              <button
-                className="w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                onClick={() => window.location.reload()}
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
+          <ErrorState
+            message={errorMessage}
+            onDashboard={() => navigate('/dashboard')}
+            onRetry={() => window.location.reload()}
+          />
         )}
+      </section>
+    </main>
+  )
+}
+
+function VerifyingState() {
+  return (
+    <div className="payment-state">
+      <div className="payment-status-icon is-verifying" aria-hidden="true">
+        <Loader2 />
+      </div>
+      <div className="payment-copy">
+        <p className="payment-eyebrow">Secure checkout</p>
+        <h1>Confirming your payment</h1>
+        <p>We’re securely confirming your transaction. This usually takes only a moment.</p>
+      </div>
+      <div className="payment-progress" aria-label="Payment confirmation in progress">
+        <span className="is-complete"><Check size={12} /> Payment received</span>
+        <span className="payment-progress-line" />
+        <span className="is-current"><Loader2 size={12} /> Unlocking access</span>
+      </div>
+      <p className="payment-helper">Please keep this page open while we finish.</p>
+    </div>
+  )
+}
+
+function SuccessState({ pendingExport, onContinue }: { pendingExport: boolean; onContinue: () => void }) {
+  return (
+    <div className="payment-state">
+      <div className="payment-status-icon is-success" aria-hidden="true">
+        <CheckCircle2 />
+      </div>
+      <div className="payment-copy">
+        <p className="payment-eyebrow">Payment confirmed</p>
+        <h1>You’re all set.</h1>
+        <p>
+          {pendingExport
+            ? 'Your export is ready. Continue to download your updated document.'
+            : 'Your access has been unlocked and is ready when you are.'}
+        </p>
+      </div>
+      <div className="payment-confirmation" aria-label="Payment completed successfully">
+        <Check size={15} />
+        <span>Access successfully unlocked</span>
+      </div>
+      <button className="primary-button payment-action" type="button" onClick={onContinue}>
+        {pendingExport ? <Download size={17} /> : null}
+        {pendingExport ? 'Continue & download' : 'Return to dashboard'}
+      </button>
+    </div>
+  )
+}
+
+function ErrorState({
+  message,
+  onDashboard,
+  onRetry,
+}: {
+  message: string
+  onDashboard: () => void
+  onRetry: () => void
+}) {
+  return (
+    <div className="payment-state">
+      <div className="payment-status-icon is-error" aria-hidden="true">
+        <XCircle />
+      </div>
+      <div className="payment-copy">
+        <p className="payment-eyebrow">Something needs attention</p>
+        <h1>We couldn’t verify your payment</h1>
+        <p>{message}</p>
+      </div>
+      <div className="payment-actions">
+        <button className="toolbar-button bordered" type="button" onClick={onDashboard}>
+          Go to dashboard
+        </button>
+        <button className="primary-button" type="button" onClick={onRetry}>Try again</button>
       </div>
     </div>
-  );
+  )
 }

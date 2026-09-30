@@ -1,15 +1,85 @@
 import { useEffect, useRef } from 'react'
+import type { KeyboardEvent, ClipboardEvent, ChangeEvent } from 'react'
 
 export function CodeBoxes({ value, onChange, disabled = false }: { value: string; onChange: (value: string) => void; disabled?: boolean }) {
   const refs = useRef<Array<HTMLInputElement | null>>([])
-  useEffect(() => { refs.current[0]?.focus() }, [])
+  
+  useEffect(() => { 
+    refs.current[0]?.focus() 
+  }, [])
+  
   const digits = value.padEnd(6, ' ').slice(0, 6).split('').map((digit) => digit.trim())
-  function update(index: number, input: string) {
-    const cleaned = input.replace(/\D/g, '')
-    if (!cleaned) return
-    const next = digits.map((digit, position) => position === index ? cleaned[0] : digit).join('').trim()
-    onChange(next)
+
+  function handleKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Backspace') {
+      event.preventDefault()
+      const newDigits = [...digits]
+      
+      if (digits[index]) {
+        newDigits[index] = ''
+        onChange(newDigits.join(''))
+      } else if (index > 0) {
+        newDigits[index - 1] = ''
+        onChange(newDigits.join(''))
+        refs.current[index - 1]?.focus()
+      }
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      if (index > 0) refs.current[index - 1]?.focus()
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      if (index < 5) refs.current[index + 1]?.focus()
+    }
+  }
+
+  function handleChange(index: number, event: ChangeEvent<HTMLInputElement>) {
+    const inputVal = event.target.value.replace(/\D/g, '')
+    if (!inputVal) return
+    
+    const lastChar = inputVal[inputVal.length - 1]
+    const newDigits = [...digits]
+    newDigits[index] = lastChar
+    
+    onChange(newDigits.join(''))
     if (index < 5) refs.current[index + 1]?.focus()
   }
-  return <div className="code-boxes" role="group" aria-label="Six digit verification code">{digits.map((digit, index) => <input key={index} ref={(element) => { refs.current[index] = element }} className="code-box" aria-label={`Verification digit ${index + 1}`} inputMode="numeric" maxLength={1} value={digit} disabled={disabled} onChange={(event) => update(index, event.target.value)} onKeyDown={(event) => { if (event.key === 'Backspace' && !digits[index] && index > 0) refs.current[index - 1]?.focus() }} onPaste={(event) => { event.preventDefault(); onChange(event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)); refs.current[Math.min(5, event.clipboardData.getData('text').length - 1)]?.focus() }} />)}</div>
+
+  function handlePaste(index: number, event: ClipboardEvent<HTMLInputElement>) {
+    event.preventDefault()
+    const pastedText = event.clipboardData.getData('text').replace(/\D/g, '')
+    if (!pastedText) return
+    
+    const newDigits = [...digits]
+    for (let i = 0; i < pastedText.length; i++) {
+      if (index + i < 6) {
+        newDigits[index + i] = pastedText[i]
+      }
+    }
+    
+    onChange(newDigits.join(''))
+    const nextFocus = Math.min(5, index + pastedText.length)
+    refs.current[nextFocus]?.focus()
+  }
+
+  return (
+    <div className="code-boxes" role="group" aria-label="Six digit verification code">
+      {digits.map((digit, index) => (
+        <input 
+          key={index} 
+          ref={(element) => { refs.current[index] = element }} 
+          className="code-box" 
+          aria-label={`Verification digit ${index + 1}`} 
+          type="text"
+          inputMode="numeric" 
+          pattern="[0-9]*"
+          maxLength={1} 
+          value={digit} 
+          disabled={disabled} 
+          onChange={(event) => handleChange(index, event)} 
+          onKeyDown={(event) => handleKeyDown(index, event)} 
+          onPaste={(event) => handlePaste(index, event)} 
+        />
+      ))}
+    </div>
+  )
 }

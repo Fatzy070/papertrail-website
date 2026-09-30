@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowRight, Eye, EyeOff, LoaderCircle, CheckCircle2 } from 'lucide-react'
 import { useResetPassword } from '../../../hooks/use-auth'
+import { useToastStore } from '../../../store/toast-store'
 
 export function ResetPasswordStep({ email, onBackToLogin }: { email: string; onBackToLogin: () => void }) {
   const [code, setCode] = useState('')
@@ -9,11 +10,12 @@ export function ResetPasswordStep({ email, onBackToLogin }: { email: string; onB
   const [visible, setVisible] = useState(false)
   const [success, setSuccess] = useState(false)
   const resetPassword = useResetPassword()
+  const showToast = useToastStore((state) => state.show)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (password !== confirmPassword) {
-      alert("Passwords don't match")
+      showToast("Passwords don't match", 'error')
       return
     }
     if (!email || !code) return

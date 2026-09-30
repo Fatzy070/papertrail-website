@@ -1,9 +1,8 @@
-import { PanelsTopLeft } from 'lucide-react'
-export function Brand() {
+export function Brand({ className = '' }: { className?: string }) {
   return (
-    <span className="brand">
+    <span className={`brand ${className}`}>
       <span className="brand-mark">
-        <PanelsTopLeft size={18} />
+        <img src="/logo.png" alt="Papertrail" className="brand-logo-img" />
       </span>
       papertrail<span className="brand-dot">.</span>
     </span>
