@@ -186,7 +186,7 @@ export function SettingsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex md:flex-row flex-col items-center justify-between">
                       <div>
                         <h3 className="font-semibold text-lg">Free Plan</h3>
                         <p className="text-sm text-[var(--muted)]">You are currently on the free plan.</p>

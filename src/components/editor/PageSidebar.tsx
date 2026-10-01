@@ -108,7 +108,7 @@ export function PageSidebar({
   return (
     <aside className={mobileOpen ? 'page-sidebar mobile-panel-open' : 'page-sidebar'}>
       {/* ── Sticky header with page count + Add Pages ── */}
-      <div className="panel-heading" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', position: 'sticky', top: 0, zIndex: 10, background: 'var(--sidebar-bg, #f8f9fa)' }}>
+      <div className="panel-heading flex items-center justify-between gap-1.5 sticky top-0 z-10 bg-[var(--sidebar-bg,#f8f9fa)]">
         <span>Pages <span className="count-badge">{pages.length}</span></span>
 
         <button type="button" className="mobile-panel-close" onClick={onMobileDismiss} aria-label="Close pages panel"><X size={18} /></button>
