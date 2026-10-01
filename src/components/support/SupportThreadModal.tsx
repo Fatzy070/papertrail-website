@@ -85,25 +85,25 @@ export function SupportThreadModal({ ticketId, onClose }: { ticketId: string, on
   return (
     <Dialog title={data ? `Ticket: ${data.ticket.subject}` : 'Support Ticket'} onClose={onClose}>
       {isPending ? (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>Loading conversation...</div>
+        <div className="p-8 text-center">Loading conversation...</div>
       ) : isError ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--error)' }}>Failed to load conversation.</div>
+        <div className="p-8 text-center text-[var(--error)]">Failed to load conversation.</div>
       ) : data ? (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '60vh', minHeight: '400px' }}>
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+        <div className="flex flex-col h-[60vh] min-h-[400px]">
+          <div className="flex-1 overflow-y-auto pr-2.5 flex flex-col gap-4 mb-4">
             {data.messages.map((msg) => {
               const isUser = msg.senderRole === 'USER'
               return (
-                <div key={msg.id} style={{ alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '80%', background: isUser ? 'var(--primary)' : 'var(--surface-hover)', color: isUser ? '#fff' : 'inherit', padding: '1rem', borderRadius: '12px', borderBottomRightRadius: isUser ? '2px' : '12px', borderBottomLeftRadius: !isUser ? '2px' : '12px' }}>
-                  <div style={{ fontSize: '0.8rem', opacity: 0.8, marginBottom: '0.5rem', fontWeight: 600 }}>
+                <div key={msg.id} className={`max-w-[80%] p-4 rounded-xl ${isUser ? 'self-end bg-[var(--primary)] text-white rounded-br-sm' : 'self-start bg-[var(--surface-hover)] text-inherit rounded-bl-sm'}`}>
+                  <div className="text-[0.8rem] opacity-80 mb-2 font-semibold">
                     {isUser ? 'You' : 'Support Team'} &middot; {new Date(msg.createdAt).toLocaleString()}
                   </div>
-                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{msg.message}</div>
+                  <div className="whitespace-pre-wrap leading-relaxed">{msg.message}</div>
                   
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div className="mt-3 flex gap-2 flex-wrap">
                       {msg.attachments.map((att) => (
-                        <button key={att.storageKey} onClick={() => handleAttachmentClick(att.storageKey)} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <button key={att.storageKey} onClick={() => handleAttachmentClick(att.storageKey)} className="bg-black/10 dark:bg-white/10 border-none py-1 px-2 rounded cursor-pointer text-[0.8rem] text-inherit flex items-center gap-1">
                           <Paperclip size={12} /> {att.originalName}
                         </button>
                       ))}
@@ -115,45 +115,44 @@ export function SupportThreadModal({ ticketId, onClose }: { ticketId: string, on
           </div>
           
           {data.ticket.status === 'RESOLVED' ? (
-            <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--surface-hover)', borderRadius: '8px' }}>
-              <p style={{ margin: '0 0 1rem 0' }}>This ticket has been marked as resolved.</p>
+            <div className="text-center p-4 bg-[var(--surface-hover)] rounded-lg">
+              <p className="m-0 mb-4">This ticket has been marked as resolved.</p>
               <button className="secondary-button" onClick={handleReopen} disabled={reopenMutation.isPending}>
                 {reopenMutation.isPending ? 'Reopening...' : 'Reopen Ticket'}
               </button>
             </div>
           ) : (
-            <form onSubmit={submitReply} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+            <form onSubmit={submitReply} className="flex flex-col gap-2 border-t border-[var(--border)] pt-4">
               <textarea 
-                className="text-input" 
+                className="text-input resize-y min-h-[80px]" 
                 placeholder="Type your reply..." 
                 value={message} 
                 onChange={e => setMessage(e.target.value)}
                 required
                 minLength={2}
                 maxLength={5000}
-                style={{ resize: 'vertical', minHeight: '80px' }}
               />
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className="flex justify-between items-start mt-1">
                 <div>
                   {attachments.length > 0 && (
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                    <div className="flex gap-2 flex-wrap mb-2">
                       {attachments.map((file, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--surface-hover)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
+                        <div key={i} className="flex items-center gap-1 bg-[var(--surface-hover)] py-1 px-2 rounded text-[0.8rem]">
                           <span>{file.name}</span>
-                          <button type="button" onClick={() => removeAttachment(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={12}/></button>
+                          <button type="button" onClick={() => removeAttachment(i)} className="bg-transparent border-none cursor-pointer p-0 flex"><X size={12}/></button>
                         </div>
                       ))}
                     </div>
                   )}
                   {attachments.length < 3 && (
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--muted)' }}>
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-[0.9rem] text-[var(--muted)]">
                       <Paperclip size={14} /> Attach Screenshot
                       <input type="file" multiple accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} hidden />
                     </label>
                   )}
                 </div>
-                <button type="submit" className="primary-button" disabled={replyMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button type="submit" className="primary-button flex items-center gap-2" disabled={replyMutation.isPending}>
                   <Send size={16} /> {replyMutation.isPending ? 'Sending...' : 'Reply'}
                 </button>
               </div>

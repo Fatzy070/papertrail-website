@@ -186,24 +186,24 @@ export function EditorToolbar({
         </div>
         
         {state.activeTool === 'draw' && (
-          <div className="tool-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+          <div className="tool-group flex items-center gap-3">
+            <label className="flex items-center gap-1 text-[13px]">
               Color:
               <input 
                 type="color" 
                 value={state.drawSettings.color} 
                 onChange={(e) => state.setDrawSettings({ color: e.target.value })}
-                style={{ width: '24px', height: '24px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                className="w-6 h-6 p-0 border-none rounded cursor-pointer"
               />
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+            <label className="flex items-center gap-1 text-[13px]">
               Width:
               <input 
                 type="range" 
                 min="1" max="20" 
                 value={state.drawSettings.strokeWidth}
                 onChange={(e) => state.setDrawSettings({ strokeWidth: Number(e.target.value) })}
-                style={{ width: '80px' }}
+                className="w-20"
               />
             </label>
           </div>
@@ -212,8 +212,7 @@ export function EditorToolbar({
         <span className="tool-tip">Select text to edit · drag to move</span>
         <div className="zoom-control">
           <button 
-            className="icon-button text-xs font-medium" 
-            style={{ fontSize: '11px', padding: '0 6px' }}
+            className="icon-button text-[11px] font-medium px-1.5" 
             onClick={() => {
               const container = document.querySelector('.pdf-workspace')
               if (container && state.document?.pages[0]) {
@@ -227,8 +226,7 @@ export function EditorToolbar({
             Fit W
           </button>
           <button 
-            className="icon-button text-xs font-medium" 
-            style={{ fontSize: '11px', padding: '0 6px' }}
+            className="icon-button text-[11px] font-medium px-1.5" 
             onClick={() => {
               const container = document.querySelector('.pdf-workspace')
               if (container && state.document?.pages[0]) {
@@ -242,14 +240,13 @@ export function EditorToolbar({
             Fit P
           </button>
           <button 
-            className="icon-button text-xs font-medium" 
-            style={{ fontSize: '11px', padding: '0 6px' }}
+            className="icon-button text-[11px] font-medium px-1.5" 
             onClick={() => state.setZoom(1)}
             title="100% Zoom"
           >
             100%
           </button>
-          <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', margin: '0 4px' }} />
+          <div className="w-[1px] h-4 bg-[var(--border-color)] mx-1" />
           <button
             className="icon-button"
             aria-label="Zoom out"

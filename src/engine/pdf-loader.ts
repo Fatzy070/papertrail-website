@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import PdfWorker from './pdf.worker.entry?worker'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
+pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
 
 export async function loadPdfDocument(bytes: ArrayBuffer) {
   // PDF.js transfers its input buffer to the worker. Retain the original for export.

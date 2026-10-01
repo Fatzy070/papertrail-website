@@ -32,7 +32,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
         selected.type === 'source-image' ? (
           <div className="panel-body">
             <div className="section-label">Existing PDF image</div>
-            <button className="danger-button subtle" onClick={remove} style={{ marginTop: '8px' }}>
+            <button className="danger-button subtle mt-2" onClick={remove}>
               <Trash2 size={15} /> Delete
             </button>
           </div>
@@ -77,10 +77,10 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
             const hasUserFontOverride = !!selected.styleOverrides?.fontId
 
             return (
-              <label className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-label col-span-full">
                 Font
                 {!hasUserFontOverride && sourceFontLabel && (
-                  <span style={{ fontSize: '11px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+                  <span className="text-[11px] text-[var(--muted)] block mb-1">
                     Source: {sourceFontLabel}{isBold ? ' Bold' : ''}{isItalic ? ' Italic' : ''}
                   </span>
                 )}
@@ -113,9 +113,9 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
           })()}
           
           {selected.type === 'text' && (
-            <div className="property-grid" style={{ marginBottom: '12px' }}>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', gap: '4px', background: 'var(--surface-hover)', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+            <div className="property-grid mb-3">
+              <div className="field-label col-span-full">
+                <div className="flex gap-1 bg-[var(--surface-hover)] p-1 rounded-lg w-fit">
                   <button 
                     className={`toolbar-btn ${resolveElementBold(selected) ? 'active' : ''}`}
                     onClick={() => {
@@ -138,7 +138,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
                     }}
                     title="Italic"
                   ><Italic size={16} /></button>
-                  <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+                  <div className="w-[1px] bg-[var(--border)] mx-1" />
                   <button 
                     className={`toolbar-btn ${selected.textAlign === 'left' ? 'active' : ''}`}
                     onClick={() => update(selected.id, { textAlign: 'left' })}
@@ -160,29 +160,28 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
           )}
 
           {selected.type === 'text' && (
-            <div className="property-grid" style={{ marginBottom: '12px' }}>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+            <div className="property-grid mb-3">
+              <div className="field-label col-span-full">
                 Link
                 {!selected.link ? (
                   <button 
-                    className="toolbar-button" 
+                    className="toolbar-button w-full mt-1 justify-center" 
                     onClick={() => setIsLinkModalOpen(true)}
-                    style={{ width: '100%', marginTop: '4px', justifyContent: 'center' }}
                   >
-                    <LinkIcon size={14} style={{ marginRight: '4px' }} /> Add link
+                    <LinkIcon size={14} className="mr-1" /> Add link
                   </button>
                 ) : (
-                  <div style={{ marginTop: '4px', padding: '8px', background: 'var(--surface-hover)', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--primary)', marginBottom: '8px', wordBreak: 'break-all' }}>
-                      <a href={selected.link.url} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                  <div className="mt-1 p-2 bg-[var(--surface-hover)] rounded-md">
+                    <div className="text-xs text-[var(--primary)] mb-2 break-all">
+                      <a href={selected.link.url} target="_blank" rel="noreferrer" className="text-inherit underline">
                         {selected.link.url}
                       </a>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="toolbar-button" onClick={() => setIsLinkModalOpen(true)} style={{ flex: 1, justifyContent: 'center', fontSize: '12px', padding: '4px' }}>
+                    <div className="flex gap-2">
+                      <button className="toolbar-button flex-1 justify-center text-xs p-1" onClick={() => setIsLinkModalOpen(true)}>
                         Edit link
                       </button>
-                      <button className="toolbar-button" onClick={() => update(selected.id, { link: undefined })} style={{ flex: 1, justifyContent: 'center', fontSize: '12px', padding: '4px', color: 'var(--danger)' }}>
+                      <button className="toolbar-button flex-1 justify-center text-xs p-1 text-[var(--danger)]" onClick={() => update(selected.id, { link: undefined })}>
                         Remove link
                       </button>
                     </div>
@@ -240,7 +239,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
                   }}
                 />
               </label>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <div className="field-label col-span-full">
                 Color
                 <ColorPicker
                   color={selected.color}
@@ -271,7 +270,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
                   }}
                 />
               </label>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <div className="field-label col-span-full">
                 Color
                 <ColorPicker
                   color={selected.color}
@@ -282,7 +281,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
           )}
           {selected.type === 'note' && (
             <div className="property-grid">
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <div className="field-label col-span-full">
                 Background Color
                 <ColorPicker
                   color={selected.color}
@@ -318,7 +317,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
               />
             </label>
           </div>
-          <div className="property-grid" style={{ marginTop: '16px' }}>
+          <div className="property-grid mt-4">
             <button className="toolbar-button" onClick={() => useEditorStore.getState().duplicateSelected()}>
               Duplicate
             </button>
@@ -333,7 +332,7 @@ export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileO
             </button>
           </div>
           
-          <button className="danger-button subtle" onClick={remove} style={{ marginTop: '8px' }}>
+          <button className="danger-button subtle mt-2" onClick={remove}>
             <Trash2 size={15} /> Delete
           </button>
         </div>
