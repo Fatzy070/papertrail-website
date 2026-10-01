@@ -49,10 +49,7 @@ export function LoginStep({
             onError={() => {
               console.error('Google Sign-In failed')
             }}
-            theme="outline"
-            size="large"
-            width="360"
-            text="continue_with"
+         
           />
           {isGooglePending && <span className="google-loading"><LoaderCircle size={16} className="animate-spin" /> Signing in…</span>}
         </div>

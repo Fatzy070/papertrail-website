@@ -1,3 +1,5 @@
+//client.ts
+
 export const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
 
 export class ApiError extends Error {
@@ -11,13 +13,21 @@ export class ApiError extends Error {
 }
 
 export async function apiFetchRaw(path: string, init: RequestInit = {}): Promise<Response> {
+  const token = localStorage.getItem('auth_token');
+  const headers = new Headers(init.headers);
+  
+  if (!(init.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   return fetch(`${baseUrl}${path}`, {
     ...init,
     credentials: 'include',
-    headers: {
-      ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...init.headers,
-    },
+    headers,
   });
 }
 
