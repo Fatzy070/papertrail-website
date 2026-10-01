@@ -34,8 +34,41 @@ export function CodeBoxes({ value, onChange, disabled = false }: { value: string
 
   function handleChange(index: number, event: ChangeEvent<HTMLInputElement>) {
     const inputVal = event.target.value.replace(/\D/g, '')
-    if (!inputVal) return
     
+    if (!inputVal) {
+      if (digits[index]) {
+        const newDigits = [...digits]
+        newDigits[index] = ''
+        onChange(newDigits.join(''))
+      }
+      return
+    }
+
+    const nativeEvent = event.nativeEvent as InputEvent
+    let isPaste = false
+    
+    if (nativeEvent.inputType === 'insertFromPaste' || nativeEvent.inputType === 'insertReplacementText') {
+      isPaste = true
+    } else if (inputVal.length > 1 && !digits[index]) {
+      isPaste = true
+    } else if (inputVal.length > 2) {
+      isPaste = true
+    }
+
+    if (isPaste) {
+      const newDigits = [...digits]
+      for (let i = 0; i < inputVal.length; i++) {
+        if (index + i < 6) {
+          newDigits[index + i] = inputVal[i]
+        }
+      }
+      onChange(newDigits.join(''))
+      const nextFocus = Math.min(5, index + inputVal.length)
+      refs.current[nextFocus]?.focus()
+      return
+    }
+
+    // Normal typing behavior
     const lastChar = inputVal[inputVal.length - 1]
     const newDigits = [...digits]
     newDigits[index] = lastChar
@@ -71,8 +104,8 @@ export function CodeBoxes({ value, onChange, disabled = false }: { value: string
           aria-label={`Verification digit ${index + 1}`} 
           type="text"
           inputMode="numeric" 
+          autoComplete="one-time-code"
           pattern="[0-9]*"
-          maxLength={1} 
           value={digit} 
           disabled={disabled} 
           onChange={(event) => handleChange(index, event)} 

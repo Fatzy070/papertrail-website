@@ -276,6 +276,7 @@ export function EditorPage() {
     }
   }
   async function save() {
+    if (saveMutation.isPending) return
     setSaveError(false)
     try {
       const bytes = await generate()
