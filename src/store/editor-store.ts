@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { EditorSnapshot, EditorTool, PdfDocumentState, EditorElement, EditorPage } from '../types/editor'
+import type { EditorSnapshot, EditorTool, PdfDocumentState, EditorElement, EditorPage, WatermarkConfig } from '../types/editor'
 
 interface EditorStore {
   document: PdfDocumentState | null
@@ -10,7 +10,10 @@ interface EditorStore {
   dirty: boolean
   history: EditorSnapshot[]
   historyIndex: number
+  clipboard: EditorElement[] | null
+  watermark?: WatermarkConfig
   
+  setWatermark: (config: WatermarkConfig | undefined) => void
   setDocument: (document: PdfDocumentState, elements: EditorElement[]) => void
   setZoom: (zoom: number) => void
   setActiveTool: (tool: EditorTool) => void
@@ -21,6 +24,8 @@ interface EditorStore {
   
   deleteSelected: () => void
   duplicateSelected: () => void
+  copySelected: () => void
+  paste: () => void
   bringForward: () => void
   sendBackward: () => void
   toggleLock: () => void
@@ -32,9 +37,11 @@ interface EditorStore {
 
   // Page management
   addPage: (pageIndex: number, page: EditorPage) => void
+  addPages: (pageIndex: number, newPages: EditorPage[]) => void
   duplicatePage: (pageIndex: number, newPage: EditorPage) => void
   rotatePage: (pageIndex: number, angle: number) => void
   deletePage: (pageIndex: number) => void
+  reorderPage: (fromIndex: number, toIndex: number) => void
   
   drawSettings: { color: string, strokeWidth: number }
   setDrawSettings: (settings: Partial<{ color: string, strokeWidth: number }>) => void
@@ -43,14 +50,16 @@ interface EditorStore {
 const initialState = { history: [] as EditorSnapshot[], historyIndex: -1 }
 
 export const useEditorStore = create<EditorStore>((set, get) => {
-  const commit = (elements: EditorElement[], pages?: EditorPage[]) =>
+  const commit = (elements: EditorElement[], pages?: EditorPage[], watermark?: WatermarkConfig) =>
     set((state) => {
       const history = state.history.slice(0, state.historyIndex + 1)
       const currentPages = pages ?? state.document?.pages ?? []
-      history.push({ elements, pages: currentPages })
+      const currentWatermark = watermark !== undefined ? watermark : state.watermark
+      history.push({ elements, pages: currentPages, watermark: currentWatermark })
       return { 
         elements, 
         history, 
+        watermark: currentWatermark,
         historyIndex: history.length - 1, 
         dirty: true,
         document: pages && state.document ? { ...state.document, pages } : state.document 
@@ -65,14 +74,17 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     zoom: 1,
     dirty: false,
     ...initialState,
-    
     drawSettings: { color: '#ef4444', strokeWidth: 3 },
+    clipboard: null,
     setDrawSettings: (settings) => set((state) => ({ drawSettings: { ...state.drawSettings, ...settings } })),
+    
+    setWatermark: (watermark) => commit(get().elements, get().document?.pages, watermark),
     
     setDocument: (document, elements) => set({ 
       document, 
       elements, 
-      history: [{ elements, pages: document.pages }], 
+      watermark: document.watermark,
+      history: [{ elements, pages: document.pages, watermark: document.watermark }], 
       historyIndex: 0, 
       dirty: false, 
       selectedElementId: null 
@@ -87,7 +99,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         element.id === id ? { ...element, ...update, edited: true } as EditorElement : element
       )
       const history = state.history.slice(0, state.historyIndex + 1)
-      history.push({ elements, pages: state.document?.pages ?? [] })
+      history.push({ elements, pages: state.document?.pages ?? [], watermark: state.watermark })
       return { elements, history, historyIndex: history.length - 1, dirty: true }
     }),
     
@@ -97,13 +109,23 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       if (!state.selectedElementId) return state
       
       const elements = state.elements.map(el => {
-        if (el.id === state.selectedElementId && !el.locked && el.type === 'text') {
-           return { ...el, text: '', edited: true }
+        if (el.id === state.selectedElementId && !el.locked) {
+           if (el.type === 'text' && el.source === 'pdf') {
+             return { ...el, deleted: true, edited: true, text: '' }
+           }
+           if (el.type === 'source-image') {
+             return { ...el, deleted: true }
+           }
         }
         return el
       }).filter(el => {
-         if (el.id === state.selectedElementId && !el.locked && el.type !== 'text') {
-            return false
+         if (el.id === state.selectedElementId && !el.locked) {
+            if (el.type !== 'text' && el.type !== 'source-image') {
+              return false
+            }
+            if (el.type === 'text' && el.source !== 'pdf') {
+              return false
+            }
          }
          return true
       })
@@ -132,18 +154,49 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       return { elements, history, historyIndex: history.length - 1, dirty: true, selectedElementId: newElement.id }
     }),
     
+    copySelected: () => set((state) => {
+      if (!state.selectedElementId) return state
+      const selected = state.elements.find(e => e.id === state.selectedElementId)
+      if (!selected) return state
+      return { clipboard: [{ ...selected }] }
+    }),
+
+    paste: () => set((state) => {
+      if (!state.clipboard || state.clipboard.length === 0) return state
+      
+      const newElements = state.clipboard.map(element => ({
+        ...element,
+        id: crypto.randomUUID(),
+        x: element.x + 10,
+        y: element.y + 10,
+        edited: true
+      })) as EditorElement[]
+
+      const elements = [...state.elements, ...newElements]
+      const history = state.history.slice(0, state.historyIndex + 1)
+      history.push({ elements, pages: state.document?.pages ?? [] })
+      return { 
+        elements, 
+        history, 
+        historyIndex: history.length - 1, 
+        dirty: true, 
+        selectedElementId: newElements[0].id,
+        // Update clipboard to allow pasting multiple times with offset
+        clipboard: newElements 
+      }
+    }),
+
     bringForward: () => set((state) => {
       if (!state.selectedElementId) return state
       const index = state.elements.findIndex(e => e.id === state.selectedElementId)
       if (index === -1 || index === state.elements.length - 1) return state
       
       const elements = [...state.elements]
-      const temp = elements[index]
-      elements[index] = elements[index + 1]
-      elements[index + 1] = temp
+      const [element] = elements.splice(index, 1)
+      elements.push(element) // Move to the very end (Bring to Front)
       
       const history = state.history.slice(0, state.historyIndex + 1)
-      history.push({ elements, pages: state.document?.pages ?? [] })
+      history.push({ elements, pages: state.document?.pages ?? [], watermark: state.watermark })
       return { elements, history, historyIndex: history.length - 1, dirty: true }
     }),
     
@@ -153,12 +206,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       if (index <= 0) return state
       
       const elements = [...state.elements]
-      const temp = elements[index]
-      elements[index] = elements[index - 1]
-      elements[index - 1] = temp
+      const [element] = elements.splice(index, 1)
+      elements.unshift(element) // Move to the very beginning (Send to Back)
       
       const history = state.history.slice(0, state.historyIndex + 1)
-      history.push({ elements, pages: state.document?.pages ?? [] })
+      history.push({ elements, pages: state.document?.pages ?? [], watermark: state.watermark })
       return { elements, history, historyIndex: history.length - 1, dirty: true }
     }),
     
@@ -168,7 +220,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         element.id === state.selectedElementId ? { ...element, locked: !element.locked } as EditorElement : element
       )
       const history = state.history.slice(0, state.historyIndex + 1)
-      history.push({ elements, pages: state.document?.pages ?? [] })
+      history.push({ elements, pages: state.document?.pages ?? [], watermark: state.watermark })
       return { elements, history, historyIndex: history.length - 1, dirty: true }
     }),
     
@@ -181,6 +233,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       return { 
         historyIndex, 
         elements: snapshot.elements, 
+        watermark: snapshot.watermark,
         document: state.document ? { ...state.document, pages: snapshot.pages } : state.document,
         dirty: true 
       }
@@ -195,6 +248,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       return { 
         historyIndex, 
         elements: snapshot.elements,
+        watermark: snapshot.watermark,
         document: state.document ? { ...state.document, pages: snapshot.pages } : state.document,
         dirty: true 
       }
@@ -202,12 +256,14 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     
     markSaved: (bytes) => set((state) => ({ 
       document: state.document && bytes ? { ...state.document, bytes } : state.document, 
-      dirty: false 
+      dirty: false,
+      watermark: state.watermark ? { ...state.watermark, source: 'pdf' } : undefined
     })),
     
-    reset: () => set({ 
+      reset: () => set({ 
       document: null, 
       elements: [], 
+      watermark: undefined,
       selectedElementId: null, 
       zoom: 1, 
       dirty: false, 
@@ -220,6 +276,14 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       if (!state.document) return
       const pages = [...state.document.pages]
       pages.splice(pageIndex + 1, 0, page)
+      commit(state.elements, pages)
+    },
+
+    addPages: (pageIndex, newPages) => {
+      const state = get()
+      if (!state.document) return
+      const pages = [...state.document.pages]
+      pages.splice(pageIndex + 1, 0, ...newPages)
       commit(state.elements, pages)
     },
 
@@ -256,6 +320,22 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       const elements = state.elements.filter(el => el.pageId !== deletedPageId)
         
       commit(elements, pages)
+    },
+
+    reorderPage: (fromIndex, toIndex) => {
+      const state = get()
+      if (!state.document) return
+      const pages = [...state.document.pages]
+      const [movedPage] = pages.splice(fromIndex, 1)
+      pages.splice(toIndex, 0, movedPage)
+      commit(state.elements, pages)
     }
   }
 })
+declare global {
+  interface Window {
+    useEditorStore?: typeof useEditorStore
+  }
+}
+
+if (typeof window !== 'undefined') window.useEditorStore = useEditorStore

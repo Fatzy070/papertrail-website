@@ -16,10 +16,14 @@ import {
   Pencil,
   FileSignature,
   StickyNote,
-  TextCursorInput
+  TextCursorInput,
+  Stamp,
+  PanelsTopLeft,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
 import { ThemeToggle } from '../ui/ThemeToggle'
+import { FindBar } from './FindBar'
 
 interface Props {
   onBack: () => void
@@ -27,6 +31,9 @@ interface Props {
   onSave: () => void
   onVersions: () => void
   onImageClick: () => void
+  onWatermarkClick: () => void
+  onPagesClick: () => void
+  onPropertiesClick: () => void
   saving: boolean
   saveError: boolean
 }
@@ -37,6 +44,9 @@ export function EditorToolbar({
   onSave,
   onVersions,
   onImageClick,
+  onWatermarkClick,
+  onPagesClick,
+  onPropertiesClick,
   saving,
   saveError,
 }: Props) {
@@ -72,6 +82,9 @@ export function EditorToolbar({
           </span>
         </div>
         <div className="topbar-actions">
+          <button className="icon-button mobile-editor-action" onClick={onPagesClick} aria-label="Open pages" title="Pages"><PanelsTopLeft size={18} /></button>
+          <button className="icon-button mobile-editor-action" onClick={onPropertiesClick} aria-label="Open properties" title="Properties"><SlidersHorizontal size={18} /></button>
+          <FindBar />
           <ThemeToggle />
           <button
             className="toolbar-button"
@@ -162,27 +175,35 @@ export function EditorToolbar({
                'Note'}
             </button>
           ))}
+          <button
+            className="toolbar-button"
+            onClick={onWatermarkClick}
+            title="Watermark"
+          >
+            <Stamp size={16} />
+            Watermark
+          </button>
         </div>
         
         {state.activeTool === 'draw' && (
-          <div className="tool-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+          <div className="tool-group flex items-center gap-3">
+            <label className="flex items-center gap-1 text-[13px]">
               Color:
               <input 
                 type="color" 
                 value={state.drawSettings.color} 
                 onChange={(e) => state.setDrawSettings({ color: e.target.value })}
-                style={{ width: '24px', height: '24px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                className="w-6 h-6 p-0 border-none rounded cursor-pointer"
               />
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
+            <label className="flex items-center gap-1 text-[13px]">
               Width:
               <input 
                 type="range" 
                 min="1" max="20" 
                 value={state.drawSettings.strokeWidth}
                 onChange={(e) => state.setDrawSettings({ strokeWidth: Number(e.target.value) })}
-                style={{ width: '80px' }}
+                className="w-20"
               />
             </label>
           </div>
@@ -190,6 +211,42 @@ export function EditorToolbar({
 
         <span className="tool-tip">Select text to edit · drag to move</span>
         <div className="zoom-control">
+          <button 
+            className="icon-button text-[11px] font-medium px-1.5" 
+            onClick={() => {
+              const container = document.querySelector('.pdf-workspace')
+              if (container && state.document?.pages[0]) {
+                const availableWidth = container.clientWidth - 40
+                const zoom = availableWidth / state.document.pages[0].width
+                state.setZoom(Math.max(0.1, Math.min(zoom, 5)))
+              }
+            }}
+            title="Fit Width"
+          >
+            Fit W
+          </button>
+          <button 
+            className="icon-button text-[11px] font-medium px-1.5" 
+            onClick={() => {
+              const container = document.querySelector('.pdf-workspace')
+              if (container && state.document?.pages[0]) {
+                const availableHeight = container.clientHeight - 40
+                const zoom = availableHeight / state.document.pages[0].height
+                state.setZoom(Math.max(0.1, Math.min(zoom, 5)))
+              }
+            }}
+            title="Fit Page"
+          >
+            Fit P
+          </button>
+          <button 
+            className="icon-button text-[11px] font-medium px-1.5" 
+            onClick={() => state.setZoom(1)}
+            title="100% Zoom"
+          >
+            100%
+          </button>
+          <div className="w-[1px] h-4 bg-[var(--border-color)] mx-1" />
           <button
             className="icon-button"
             aria-label="Zoom out"

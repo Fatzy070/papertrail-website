@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { extractNativeText } from '../engine/text-extractor'
+import { enrichTextElementsWithMuPDF } from '../engine/text-style-enricher'
+import { extractNativeImages } from '../engine/image-extractor'
 import { extractAnnotations } from '../engine/annotations/annotation-reader'
 import { isPdfFile, loadPdfDocument } from '../engine/pdf-loader'
 import { getPageInfo } from '../engine/pdf-renderer'
@@ -19,6 +21,7 @@ export function usePdfEditor() {
     setError(null)
     setLoading(true)
     try {
+      console.log('[DEBUG] openBytes CALLED!', { name, source })
       const loadedPdf = await loadPdfDocument(bytes)
       setPdf(loadedPdf)
       const pages = []
@@ -26,10 +29,23 @@ export function usePdfEditor() {
         pages.push(getPageInfo(await loadedPdf.getPage(index + 1), index))
       }
       const textElements = await extractNativeText(loadedPdf, pages)
+      // Enrich PDF.js elements with more reliable font metadata from MuPDF.
+      // This is best-effort: enrichment failures never break document loading.
+      try {
+        await enrichTextElementsWithMuPDF(textElements, bytes, pages)
+      } catch (enrichErr) {
+        console.warn('[use-pdf-editor] MuPDF enrichment skipped:', enrichErr)
+      }
       const annotationElements = await extractAnnotations(loadedPdf, pages)
+      const imageElements = []
+      for (let i = 0; i < loadedPdf.numPages; i++) {
+        const page = await loadedPdf.getPage(i + 1)
+        const images = await extractNativeImages(page, pages[i].id)
+        imageElements.push(...images)
+      }
       setDocument(
         { name, bytes, pages, source },
-        [...textElements, ...annotationElements]
+        [...textElements, ...annotationElements, ...imageElements]
       )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to open this PDF.')

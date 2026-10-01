@@ -11,10 +11,14 @@
   },
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.9",
+    "@fontsource/arimo": "^5.3.0",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.103.2",
     "framer-motion": "^13.4.3",
     "lucide-react": "^1.47.0",
+    "mupdf": "^1.28.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
     "perfect-freehand": "^1.2.3",
@@ -37,6 +41,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
+    "puppeteer": "^25.12.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",
     "vite": "^8.3.0"

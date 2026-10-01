@@ -1,52 +1,144 @@
 import { useState } from 'react'
-import { SlidersHorizontal, Trash2, Type, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon } from 'lucide-react'
+import { SlidersHorizontal, Trash2, Type, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon, X } from 'lucide-react'
 import { useEditorStore } from '../../store/editor-store'
 import { ColorPicker } from '../ui/ColorPicker'
 import { LinkModal } from './LinkModal'
+import {
+  FONT_REGISTRY,
+  FONT_ORDER,
+  resolveElementFontId,
+  resolveElementBold,
+  resolveElementItalic,
+  parseFontNameVariant,
+  getCssFontFamily,
+} from '../../engine/font-registry'
+import type { FontId } from '../../engine/font-registry'
 
-export function PropertyPanel() {
+export function PropertyPanel({ mobileOpen = false, onMobileDismiss }: { mobileOpen?: boolean; onMobileDismiss?: () => void }) {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const selected = useEditorStore((s) =>
     s.elements.find((e) => e.id === s.selectedElementId),
-  ) as any // Temporary cast until we break down PropertyPanel per element type
+  ) as import('../../types/editor').EditorElement | undefined
   const document = useEditorStore((s) => s.document)
   const update = useEditorStore((s) => s.updateElement)
   const remove = useEditorStore((s) => s.deleteSelected)
   return (
-    <aside className="property-panel">
+    <aside className={mobileOpen ? 'property-panel mobile-panel-open' : 'property-panel'}>
       <div className="panel-heading">
         <SlidersHorizontal size={15} /> Properties
+        <button type="button" className="mobile-panel-close" onClick={onMobileDismiss} aria-label="Close properties panel"><X size={18} /></button>
       </div>
       {selected ? (
-        <div className="panel-body">
-          <div className="section-label">
-            <Type size={14} /> Text selection
+        selected.type === 'source-image' ? (
+          <div className="panel-body">
+            <div className="section-label">Existing PDF image</div>
+            <button className="danger-button subtle mt-2" onClick={remove}>
+              <Trash2 size={15} /> Delete
+            </button>
           </div>
-          <label className="field-label">
-            Content
-            <textarea
-              className="text-input"
-              rows={4}
-              value={selected.text}
-              onChange={(e) => update(selected.id, { text: e.target.value })}
-            />
-          </label>
+        ) : (
+        <div className="panel-body">
+          {(selected.type === 'text' || selected.type === 'note') && (
+            <>
+              <div className="section-label">
+                <Type size={14} /> Text selection
+              </div>
+              <label className="field-label">
+                Content
+                <textarea
+                  className="text-input"
+                  rows={4}
+                  value={selected.text}
+                  onChange={(e) => update(selected.id, { text: e.target.value })}
+                />
+              </label>
+            </>
+          )}
+
+          {/* Font family dropdown — text elements only */}
+          {selected.type === 'text' && (() => {
+            const currentFontId: FontId = resolveElementFontId(selected)
+            const isBold = resolveElementBold(selected)
+            const isItalic = resolveElementItalic(selected)
+
+            // Friendly label for source PDF font (shown below dropdown when font is from source)
+            const sourceFontLabel = (() => {
+              const norm = selected.sourceStyle?.normalizedFontName
+              if (!norm) return null
+              // If we resolved to a known registry font, use its label
+              const resolved = resolveElementFontId(selected)
+              if (resolved !== 'helvetica' || norm.toLowerCase().includes('helvetica')) {
+                return FONT_REGISTRY[resolved].label
+              }
+              // Unsupported source font — show family part
+              const { family } = parseFontNameVariant(norm)
+              return family || 'Original PDF font'
+            })()
+            const hasUserFontOverride = !!selected.styleOverrides?.fontId
+
+            return (
+              <label className="field-label col-span-full">
+                Font
+                {!hasUserFontOverride && sourceFontLabel && (
+                  <span className="text-[11px] text-[var(--muted)] block mb-1">
+                    Source: {sourceFontLabel}{isBold ? ' Bold' : ''}{isItalic ? ' Italic' : ''}
+                  </span>
+                )}
+                <select
+                  className="text-input"
+                  value={currentFontId}
+                  onChange={(e) => {
+                    const newFontId = e.target.value as FontId
+                    const entry = FONT_REGISTRY[newFontId]
+                    update(selected.id, {
+                      fontId: newFontId,
+                      fontFamily: entry.label,
+                      styleOverrides: { ...selected.styleOverrides, fontId: newFontId },
+                    })
+                  }}
+                  style={{ fontFamily: getCssFontFamily(currentFontId) }}
+                >
+                  {FONT_ORDER.map((fid) => (
+                    <option
+                      key={fid}
+                      value={fid}
+                      style={{ fontFamily: getCssFontFamily(fid) }}
+                    >
+                      {FONT_REGISTRY[fid].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          })()}
           
           {selected.type === 'text' && (
-            <div className="property-grid" style={{ marginBottom: '12px' }}>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', gap: '4px', background: 'var(--surface-hover)', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+            <div className="property-grid mb-3">
+              <div className="field-label col-span-full">
+                <div className="flex gap-1 bg-[var(--surface-hover)] p-1 rounded-lg w-fit">
                   <button 
-                    className={`toolbar-btn ${selected.bold ? 'active' : ''}`}
-                    onClick={() => update(selected.id, { bold: !selected.bold })}
+                    className={`toolbar-btn ${resolveElementBold(selected) ? 'active' : ''}`}
+                    onClick={() => {
+                      const newBold = !resolveElementBold(selected)
+                      update(selected.id, {
+                        bold: newBold,
+                        styleOverrides: { ...selected.styleOverrides, bold: newBold },
+                      })
+                    }}
                     title="Bold"
                   ><Bold size={16} /></button>
                   <button 
-                    className={`toolbar-btn ${selected.italic ? 'active' : ''}`}
-                    onClick={() => update(selected.id, { italic: !selected.italic })}
+                    className={`toolbar-btn ${resolveElementItalic(selected) ? 'active' : ''}`}
+                    onClick={() => {
+                      const newItalic = !resolveElementItalic(selected)
+                      update(selected.id, {
+                        italic: newItalic,
+                        styleOverrides: { ...selected.styleOverrides, italic: newItalic },
+                      })
+                    }}
                     title="Italic"
                   ><Italic size={16} /></button>
-                  <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+                  <div className="w-[1px] bg-[var(--border)] mx-1" />
                   <button 
                     className={`toolbar-btn ${selected.textAlign === 'left' ? 'active' : ''}`}
                     onClick={() => update(selected.id, { textAlign: 'left' })}
@@ -68,29 +160,28 @@ export function PropertyPanel() {
           )}
 
           {selected.type === 'text' && (
-            <div className="property-grid" style={{ marginBottom: '12px' }}>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+            <div className="property-grid mb-3">
+              <div className="field-label col-span-full">
                 Link
                 {!selected.link ? (
                   <button 
-                    className="toolbar-button" 
+                    className="toolbar-button w-full mt-1 justify-center" 
                     onClick={() => setIsLinkModalOpen(true)}
-                    style={{ width: '100%', marginTop: '4px', justifyContent: 'center' }}
                   >
-                    <LinkIcon size={14} style={{ marginRight: '4px' }} /> Add link
+                    <LinkIcon size={14} className="mr-1" /> Add link
                   </button>
                 ) : (
-                  <div style={{ marginTop: '4px', padding: '8px', background: 'var(--surface-hover)', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--primary)', marginBottom: '8px', wordBreak: 'break-all' }}>
-                      <a href={selected.link.url} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                  <div className="mt-1 p-2 bg-[var(--surface-hover)] rounded-md">
+                    <div className="text-xs text-[var(--primary)] mb-2 break-all">
+                      <a href={selected.link.url} target="_blank" rel="noreferrer" className="text-inherit underline">
                         {selected.link.url}
                       </a>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="toolbar-button" onClick={() => setIsLinkModalOpen(true)} style={{ flex: 1, justifyContent: 'center', fontSize: '12px', padding: '4px' }}>
+                    <div className="flex gap-2">
+                      <button className="toolbar-button flex-1 justify-center text-xs p-1" onClick={() => setIsLinkModalOpen(true)}>
                         Edit link
                       </button>
-                      <button className="toolbar-button" onClick={() => update(selected.id, { link: undefined })} style={{ flex: 1, justifyContent: 'center', fontSize: '12px', padding: '4px', color: 'var(--danger)' }}>
+                      <button className="toolbar-button flex-1 justify-center text-xs p-1 text-[var(--danger)]" onClick={() => update(selected.id, { link: undefined })}>
                         Remove link
                       </button>
                     </div>
@@ -125,7 +216,10 @@ export function PropertyPanel() {
                   onChange={(e) => {
                     const value = +e.target.value
                     if (value > 0 && value <= 200)
-                      update(selected.id, { fontSize: value })
+                      update(selected.id, {
+                        fontSize: value,
+                        styleOverrides: { ...selected.styleOverrides, fontSize: value },
+                      })
                   }}
                 />
               </label>
@@ -145,11 +239,16 @@ export function PropertyPanel() {
                   }}
                 />
               </label>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <div className="field-label col-span-full">
                 Color
                 <ColorPicker
                   color={selected.color}
-                  onChange={(color) => update(selected.id, { color })}
+                  onChange={(color) =>
+                    update(selected.id, {
+                      color,
+                      styleOverrides: { ...selected.styleOverrides, color },
+                    })
+                  }
                 />
               </div>
             </div>
@@ -171,7 +270,7 @@ export function PropertyPanel() {
                   }}
                 />
               </label>
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <div className="field-label col-span-full">
                 Color
                 <ColorPicker
                   color={selected.color}
@@ -182,7 +281,7 @@ export function PropertyPanel() {
           )}
           {selected.type === 'note' && (
             <div className="property-grid">
-              <div className="field-label" style={{ gridColumn: '1 / -1' }}>
+              <div className="field-label col-span-full">
                 Background Color
                 <ColorPicker
                   color={selected.color}
@@ -191,7 +290,7 @@ export function PropertyPanel() {
               </div>
             </div>
           )}
-          <div className="section-label">Position · page points</div>
+          <div className="section-label">Transform</div>
           <div className="property-grid">
             {(['x', 'y'] as const).map((axis) => (
               <label key={axis} className="field-label">
@@ -206,8 +305,19 @@ export function PropertyPanel() {
                 />
               </label>
             ))}
+            <label className="field-label">
+              Rotation
+              <input
+                className="text-input"
+                type="number"
+                value={Math.round(('rotation' in selected ? selected.rotation : 0) || 0)}
+                onChange={(e) =>
+                  update(selected.id, { rotation: +e.target.value })
+                }
+              />
+            </label>
           </div>
-          <div className="property-grid" style={{ marginTop: '16px' }}>
+          <div className="property-grid mt-4">
             <button className="toolbar-button" onClick={() => useEditorStore.getState().duplicateSelected()}>
               Duplicate
             </button>
@@ -222,10 +332,11 @@ export function PropertyPanel() {
             </button>
           </div>
           
-          <button className="danger-button subtle" onClick={remove} style={{ marginTop: '8px' }}>
+          <button className="danger-button subtle mt-2" onClick={remove}>
             <Trash2 size={15} /> Delete
           </button>
         </div>
+        )
       ) : (
         <div className="panel-body">
           <div className="section-label">Document</div>

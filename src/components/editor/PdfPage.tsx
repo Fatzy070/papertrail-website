@@ -7,9 +7,12 @@ import { ImageOverlay } from './ImageOverlay'
 import { DrawingOverlay } from './DrawingOverlay'
 import { SignatureModal } from './SignatureModal'
 import { NoteOverlay } from './NoteOverlay'
+import { WatermarkOverlay } from './WatermarkOverlay'
 import { useEditorStore } from '../../store/editor-store'
+import { pdfCache } from '../../engine/pdf-cache'
 import { getStroke } from 'perfect-freehand'
-
+import type { FontId } from '../../engine/font-registry'
+import { pageRectToCss } from '../../engine/coordinate-transformer'
 function getSvgPathFromStroke(stroke: number[][]) {
   if (!stroke.length) return ''
   const d = stroke.reduce(
@@ -33,6 +36,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     (element) => element.pageId === page.id,
   )
   const selectElement = useEditorStore((state) => state.selectElement)
+  const selectedElementId = useEditorStore((state) => state.selectedElementId)
   const addElement = useEditorStore((state) => state.addElement)
   const activeTool = useEditorStore((state) => state.activeTool)
   const setActiveTool = useEditorStore((state) => state.setActiveTool)
@@ -47,14 +51,26 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
 
   useEffect(() => {
     const controller = new AbortController()
+
+    let sourceProxy = pdf
+    if (page.kind === 'imported') {
+      const cached = pdfCache.get(page.sourceDocumentId)
+      if (cached) {
+        sourceProxy = cached.proxy
+      }
+    }
+
     if (canvasRef.current)
       void renderPage(
-        pdf,
+        sourceProxy,
         page,
         canvasRef.current,
         zoom,
         controller.signal,
-      ).catch(() => setRenderError(true))
+      ).catch((e) => {
+        console.error('Render page error:', e)
+        setRenderError(true)
+      })
     return () => controller.abort()
   }, [pdf, page, zoom])
 
@@ -65,7 +81,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     return {
       x: (e.clientX - bounds.left) / zoom,
       y: (e.clientY - bounds.top) / zoom,
-      pressure: 'pressure' in e ? (e as any).pressure : 0.5
+      pressure: 'pressure' in e ? (e.nativeEvent as globalThis.PointerEvent).pressure : 0.5
     }
   }
 
@@ -150,25 +166,30 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
     }
 
     const id = crypto.randomUUID()
+    const fontSize = 14
+    const defaultFontId: FontId = 'inter'
+
     addElement({
-          type: 'text',
+      type: 'text',
       id,
       pageId: page.id,
       source: 'user',
       originalText: '',
-      text: 'New text',
+      text: '', // Empty — placeholder shown in TextOverlay
       x: pt.x,
       y: pt.y,
-      width: 120,
-      height: 20,
-      fontSize: 14,
-      fontFamily: 'Helvetica',
+      width: 120, // starting width; auto-grows as user types
+      height: fontSize * 1.2,
+      fontSize,
+      fontFamily: 'Inter',
+      fontId: defaultFontId,
       color: '#1f2937',
       rotation: 0,
-      edited: true,
+      edited: false,
+      manualWidth: false,
     })
     selectElement(id)
-    setActiveTool('edit-text')
+    setActiveTool('pointer')
   }
 
   // Render current drawing stroke
@@ -180,10 +201,9 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
       style={{
         width: page.width * zoom,
         height: page.height * zoom,
-        cursor: activeTool === 'text' ? 'text' : activeTool === 'edit-text' ? 'text' : activeTool === 'draw' ? 'crosshair' : activeTool === 'note' ? 'crosshair' : undefined,
+        cursor: activeTool === 'text' ? 'text' : activeTool === 'draw' ? 'crosshair' : activeTool === 'note' ? 'crosshair' : undefined,
         touchAction: activeTool === 'draw' ? 'none' : 'auto' // Prevent scrolling while drawing
       }}
-      onDoubleClick={activeTool === 'text' || activeTool === 'note' ? undefined : addAt}
       onClick={(event) => {
         if (activeTool === 'draw') return // Click handled by pointer events
         if ((event.target as HTMLElement).closest('[data-text-element]')) return
@@ -196,66 +216,99 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
       onPointerCancel={handlePointerUp}
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
+      <WatermarkOverlay pageId={page.id} zoom={zoom} />
       <div className="absolute inset-0">
-        {elements
-          .filter((element) => element.type === 'text' && (element as any).edited && (element as any).source === 'pdf')
-          .map((element: any) => {
-            const bounds = element.originalBounds ?? element
+        {elements.map((element) => {
+          if (element.type === 'source-image') {
+            if (element.deleted) return null;
+            const isSelected = selectedElementId === element.id;
             return (
               <div
                 key={element.id}
+                onClick={(e) => {
+                  if (activeTool === 'pointer') {
+                    e.stopPropagation()
+                    selectElement(element.id)
+                  }
+                }}
                 style={{
                   position: 'absolute',
-                  pointerEvents: 'none',
-                  background: 'white',
-                  left: bounds.x * zoom,
-                  top: bounds.y * zoom,
-                  width: bounds.width * zoom,
-                  height: (bounds.height + 2) * zoom,
+                  left: element.x * zoom,
+                  top: element.y * zoom,
+                  width: element.width * zoom,
+                  height: element.height * zoom,
+                  border: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
+                  pointerEvents: activeTool === 'pointer' ? 'auto' : 'none',
+                  cursor: isSelected ? 'default' : 'pointer',
+                  zIndex: isSelected ? 10 : 1
                 }}
               />
             )
-          })}
-        {elements
-          .filter((element) => element.type === 'image' || element.type === 'signature')
-          .map((element) => (
-          <ImageOverlay
-            key={element.id}
-            element={element as any}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
-        {elements
-          .filter((element) => element.type === 'drawing')
-          .map((element) => (
-          <DrawingOverlay
-            key={element.id}
-            element={element as any}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
-        {elements
-          .filter((element) => element.type === 'text')
-          .map((element) => (
-          <TextOverlay
-            key={element.id}
-            element={element as any}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
-        {elements
-          .filter((element) => element.type === 'note')
-          .map((element) => (
-          <NoteOverlay
-            key={element.id}
-            element={element as any}
-            zoom={zoom}
-            onSelect={selectElement}
-          />
-        ))}
+          }
+          if (element.type === 'image' || element.type === 'signature') {
+            return (
+              <ImageOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          if (element.type === 'drawing') {
+            return (
+              <DrawingOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          if (element.type === 'text') {
+            if (element.deleted) {
+              if (element.source === 'pdf') {
+                const rect = pageRectToCss(element, page, zoom)
+                return (
+                  <div
+                    key={element.id}
+                    style={{
+                      position: 'absolute',
+                      left: rect.left,
+                      top: rect.top,
+                      width: rect.width,
+                      height: rect.height,
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      transform: `rotate(${rect.rotation}deg)`,
+                      transformOrigin: 'top left',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )
+              }
+              return null
+            }
+            return (
+              <TextOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          if (element.type === 'note') {
+            return (
+              <NoteOverlay
+                key={element.id}
+                element={element}
+                zoom={zoom}
+                onSelect={selectElement}
+              />
+            )
+          }
+          return null
+        })}
       </div>
       
       {/* Current Drawing Stroke Overlay */}

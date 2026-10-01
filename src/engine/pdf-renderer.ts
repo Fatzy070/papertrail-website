@@ -35,7 +35,10 @@ export async function renderPage(
     return { width: pageInfo.width * zoom, height: pageInfo.height * zoom }
   }
 
-  const page = await document.getPage(pageInfo.sourcePageIndex + 1)
+  const sourcePageIndex = pageInfo.kind === 'imported'
+    ? pageInfo.sourcePageIndex
+    : pageInfo.kind === 'source' ? pageInfo.sourcePageIndex : 0
+  const page = await document.getPage(sourcePageIndex + 1)
   if (signal?.aborted) return
   const viewport = page.getViewport({ scale: zoom })
   const context = canvas.getContext('2d')

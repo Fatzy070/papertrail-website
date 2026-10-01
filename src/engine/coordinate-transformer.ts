@@ -12,18 +12,26 @@ export interface ViewportRect {
 export function viewportRectToPageRect(
   page: PDFPageProxy,
   item: { transform: number[]; width: number; height: number },
-): TextElement['originalBounds'] & { rotation: number } {
+): TextElement['originalBounds'] & { rotation: number; baselineY: number } {
   const viewport = page.getViewport({ scale: 1 })
   const tx = item.transform
   const x = tx[4] ?? 0
   const baseline = tx[5] ?? 0
   const fontHeight = Math.max(Math.abs(tx[3] ?? 0), item.height, 8)
+  
+  // Standard typography assumes ~20% descent and ~80% ascent.
+  // Since `baseline` is the baseline Y-coordinate in a bottom-up system,
+  // we shift our top-down Y coordinate up by `ascent` (i.e. fontHeight * 0.8)
+  // to ensure the bounding box height (fontHeight) fully covers the descenders.
+  const ascent = fontHeight * 0.8
+  
   return {
     x,
-    y: viewport.height - baseline - fontHeight,
+    y: viewport.height - baseline - ascent,
     width: Math.max(item.width, 4),
     height: fontHeight,
     rotation: Math.atan2(tx[1] ?? 0, tx[0] ?? 1) * (180 / Math.PI),
+    baselineY: viewport.height - baseline,
   }
 }
 

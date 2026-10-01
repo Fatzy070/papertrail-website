@@ -1,3 +1,4 @@
+import type { FontId } from '../engine/font-registry'
 export type EditorTool = 'pointer' | 'edit-text' | 'text' | 'image' | 'draw' | 'sign' | 'note'
 export type TextSource = 'pdf' | 'ocr' | 'user'
 
@@ -13,6 +14,15 @@ export type EditorPage =
   | {
       id: string
       kind: 'blank'
+      width: number
+      height: number
+      rotation: number
+    }
+  | {
+      id: string
+      kind: 'imported'
+      sourceDocumentId: string
+      sourcePageIndex: number
       width: number
       height: number
       rotation: number
@@ -40,8 +50,44 @@ export interface TextElement {
   locked?: boolean
   originalBounds?: { x: number; y: number; width: number; height: number }
   edited: boolean
+  /** Whether the user manually resized the box (stops auto-grow) */
+  manualWidth?: boolean
+  /** Canonical font registry key — drives preview, measurement, and export */
+  fontId?: FontId
   link?: {
     url: string
+  }
+  deleted?: boolean
+  /** Immutable source styling captured at extraction time.
+   *  rawFontName comes from PDF.js; the muPdf* fields are added later by the enrichment layer. */
+  sourceStyle?: {
+    /** Raw PDF.js internal font name (e.g. "g_d0_f2") — kept for debug only */
+    rawFontName: string
+    /** Baseline Y in page-space top-down coords from PDF.js transform[5] — never overwritten */
+    baselineY: number
+    /** MuPDF-extracted full font name including subset prefix (e.g. "BAAAAA+LiberationSans-Bold") */
+    muPdfFontName?: string
+    /** Subset prefix stripped (e.g. "LiberationSans-Bold") */
+    normalizedFontName?: string
+    /** From MuPDF font.isBold() */
+    isBold?: boolean
+    /** From MuPDF font.isItalic() */
+    isItalic?: boolean
+    /** From MuPDF font.isMono() */
+    isMono?: boolean
+    /** From MuPDF font.isSerif() */
+    isSerif?: boolean
+    /** Extracted color from MuPDF in hex format (e.g. "#000000") */
+    color?: string
+  }
+  /** Explicit formatting changes made by the user in the Properties panel.
+   *  These always win over auto-enriched source metadata. */
+  styleOverrides?: {
+    fontId?: import('../engine/font-registry').FontId
+    bold?: boolean
+    italic?: boolean
+    fontSize?: number
+    color?: string
   }
 }
 
@@ -102,16 +148,44 @@ export interface NoteElement {
   locked?: boolean
 }
 
-export type EditorElement = TextElement | ImageElement | DrawingElement | SignatureElement | NoteElement
+export interface SourceImageElement {
+  type: 'source-image'
+  id: string
+  pageId: string
+  x: number
+  y: number
+  width: number
+  height: number
+  deleted?: boolean
+  locked?: boolean
+}
+
+export type EditorElement = TextElement | ImageElement | DrawingElement | SignatureElement | NoteElement | SourceImageElement
+
+export interface WatermarkConfig {
+  source: 'user' | 'pdf'
+  type: 'text' | 'image'
+  opacity: number
+  scale: number
+  rotation: number
+  // Text specific
+  text?: string
+  color?: string
+  // Image specific
+  imageUrl?: string
+  imageBytes?: Uint8Array
+}
 
 export interface PdfDocumentState {
   name: string
   bytes: ArrayBuffer
   pages: EditorPage[]
   source: { type: 'local' } | { type: 'remote'; documentId: string }
+  watermark?: WatermarkConfig
 }
 
 export interface EditorSnapshot {
   elements: EditorElement[]
   pages: EditorPage[]
+  watermark?: WatermarkConfig
 }

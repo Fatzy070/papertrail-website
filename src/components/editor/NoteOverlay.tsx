@@ -30,6 +30,7 @@ export function NoteOverlay({ element, zoom, onSelect }: Props) {
   // We'll open it if selected and clicked.
   useEffect(() => {
     if (!isSelected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsOpen(false)
     }
   }, [isSelected])
@@ -43,7 +44,7 @@ export function NoteOverlay({ element, zoom, onSelect }: Props) {
         width: 24 * zoom,
         height: 24 * zoom,
         cursor: activeTool === 'pointer' ? 'move' : 'default',
-        pointerEvents: activeTool === 'edit-text' ? 'none' : 'auto',
+        pointerEvents: activeTool === 'pointer' ? 'auto' : 'none',
       }}
       onClick={(e) => {
         e.stopPropagation()
@@ -131,6 +132,7 @@ export function NoteOverlay({ element, zoom, onSelect }: Props) {
             </button>
           </div>
           <textarea
+            data-editor-input="true"
             ref={textareaRef}
             value={element.text}
             onChange={(e) => updateElement(element.id, { text: e.target.value })}

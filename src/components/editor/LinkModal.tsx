@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link2 } from 'lucide-react'
 
 interface LinkModalProps {
@@ -15,6 +16,7 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
   
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setText(initialText)
       setUrl(initialUrl)
     }
@@ -37,32 +39,14 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
     onClose()
   }
 
-  return (
-    <div className="link-modal-overlay" style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div className="link-modal-content" style={{
-        backgroundColor: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: '8px',
-        padding: '16px',
-        width: '320px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: 'var(--foreground)' }}>
+  return createPortal(
+    <div className="link-modal-overlay fixed inset-0 bg-black/20 flex items-center justify-center z-[1000]">
+      <div className="link-modal-content bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 w-[320px] shadow-lg flex flex-col gap-3">
+        <div className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
           <Link2 size={16} /> Add link
         </div>
         
-        <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <label className="field-label flex flex-col gap-1">
           Text
           <input 
             type="text" 
@@ -72,7 +56,7 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
           />
         </label>
         
-        <label className="field-label" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <label className="field-label flex flex-col gap-1">
           URL
           <input 
             type="url" 
@@ -84,11 +68,12 @@ export function LinkModal({ isOpen, onClose, initialText, initialUrl, onApply }:
           />
         </label>
         
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+        <div className="flex justify-end gap-2 mt-1">
           <button className="toolbar-button" onClick={onClose}>Cancel</button>
           <button className="primary-button" onClick={handleApply}>Add link</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

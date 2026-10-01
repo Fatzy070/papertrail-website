@@ -1,33 +1,45 @@
-
+import { useState } from 'react'
 import { ThemeToggle } from './ThemeToggle'
-import { FolderOpen, ChevronRight, LogOut } from 'lucide-react'
-import { useLogout } from '../../hooks/use-auth'
-import { useNavigate } from 'react-router-dom'
-import { useToastStore } from '../../store/toast-store'
+import { FolderOpen, ChevronRight, Crown } from 'lucide-react'
+import { useBillingStatus } from '../../hooks/use-billing'
+import { UpgradeModal } from '../billing/UpgradeModal'
+import { useLocation } from 'react-router-dom'
 
 const Header = () => {
-  const logout = useLogout()
-  const navigate = useNavigate()
-  const show = useToastStore((state) => state.show)
+  const { pathname } = useLocation()
+  const titles: Record<string, string> = { '/dashboard': 'Home', '/documents': 'My documents', '/recent': 'Recent', '/starred': 'Starred', '/trash': 'Trash', '/settings': 'Settings', '/support': 'Help & feedback', '/tools/merge': 'Merge PDF', '/tools/split': 'Split & extract', '/tools/compress': 'Compress PDF', '/tools/convert': 'Convert PDF' }
+  const { data: billing } = useBillingStatus()
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   return (
-    <div className="workspace-breadcrumb">
-          <FolderOpen size={14} /> Workspace <ChevronRight size={12} />
-          <span>Documents</span>
-          <ThemeToggle />
+    <div className="workspace-breadcrumb flex items-center justify-between w-full">
+      <div className="flex items-center gap-2">
+        <FolderOpen size={14} /> Workspace <ChevronRight size={12} />
+        <span>{pathname === '/tools' ? 'PDF Tools' : titles[pathname] ?? 'Workspace'}</span>
+      </div>
+      
+      <div className="flex items-center gap-4">
+        {billing?.hasActiveSubscription ? (
+          <div className="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+            <Crown size={14} />
+            <span>PRO</span>
+          </div>
+        ) : (
           <button
-            className="icon-button mobile-account"
-            aria-label="Sign out"
-            onClick={() =>
-              void logout
-                .mutateAsync()
-                .then(() => navigate('/login'))
-                .catch(() => show('Could not sign out.', 'error'))
-            }
+            onClick={() => setShowUpgradeModal(true)}
+            className="flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-200"
           >
-            <LogOut size={16} />
+            <Crown size={14} />
+            <span>Upgrade to Pro</span>
           </button>
-   </div>
+        )}
+        <ThemeToggle />
+      </div>
+
+      {showUpgradeModal && (
+        <UpgradeModal onClose={() => setShowUpgradeModal(false)} />
+      )}
+    </div>
   )
 }
 

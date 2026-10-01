@@ -1,13 +1,14 @@
 import { apiRequest, baseUrl } from './client'
 
-export interface DocumentMetadata { id: string; name: string; mimeType: string; size: number; pageCount?: number; currentVersionNumber: number; createdAt: string; updatedAt: string }
+export interface DocumentMetadata { id: string; name: string; mimeType: string; size: number; pageCount?: number; currentVersionNumber: number; createdAt: string; updatedAt: string; isStarred: boolean; deletedAt?: string; lastOpenedAt?: string }
 export interface DocumentVersion { id: string; versionNumber: number; size: number; createdAt: string; current: boolean }
 
 export const documentsApi = {
-  list: () => apiRequest<DocumentMetadata[]>('/documents'),
+  list: (filter?: string) => apiRequest<DocumentMetadata[]>(filter ? `/documents?filter=${filter}` : '/documents'),
   get: (id: string) => apiRequest<DocumentMetadata>(`/documents/${id}`),
   upload: (file: File, name?: string) => { const data = new FormData(); data.append('file', file); if (name) data.append('name', name); return apiRequest<DocumentMetadata>('/documents', { method: 'POST', body: data }) },
   rename: (id: string, name: string) => apiRequest<DocumentMetadata>(`/documents/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  update: (id: string, updates: Partial<DocumentMetadata> & { restore?: boolean; isDeleted?: boolean }) => apiRequest<DocumentMetadata>(`/documents/${id}`, { method: 'PATCH', body: JSON.stringify(updates) }),
   remove: (id: string) => apiRequest<{ success: boolean }>(`/documents/${id}`, { method: 'DELETE' }),
   downloadUrl: (id: string) => apiRequest<{ url: string }>(`/documents/${id}/download`),
   contentUrl: (id: string) => `${baseUrl}/documents/${id}/content`,
