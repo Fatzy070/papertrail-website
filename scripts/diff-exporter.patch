@@ -1,0 +1,48 @@
+diff --git a/src/engine/pdf-exporter.ts b/src/engine/pdf-exporter.ts
+index b267cdc..ad381fa 100644
+--- a/src/engine/pdf-exporter.ts
++++ b/src/engine/pdf-exporter.ts
+@@ -13,6 +13,7 @@ import {
+   resolveElementFontId,
+   resolveElementBold,
+   resolveElementItalic,
++  resolveElementColor,
+   type FontId,
+   type FontVariant,
+ } from './font-registry'
+@@ -114,7 +115,17 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
+     ? await applyMuPdfRedactions(documentState.bytes, pendingRedactions)
+     : documentState.bytes
+ 
+-  const originalPdf = await PDFDocument.load(mutationBase)
++
++  let originalPdf;
++  try {
++    const cleanBuffer = mutationBase instanceof Uint8Array 
++      ? new Uint8Array(mutationBase) 
++      : mutationBase;
++    originalPdf = await PDFDocument.load(cleanBuffer)
++  } catch(e) {
++    console.error("PDFDocument.load failed!", e)
++    throw e;
++  }
+   const pdf = await PDFDocument.create()
+   pdf.registerFontkit(fontkit)
+ 
+@@ -188,6 +199,7 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
+         const fontId = resolveElementFontId(element)
+         const isBold = resolveElementBold(element)
+         const isItalic = resolveElementItalic(element)
++        const effectiveColor = resolveElementColor(element)
+         const variant = variantFromFlags(isBold, isItalic)
+         const activeFont = await getOrEmbedFont(pdf, fontId, variant, embedCache)
+ 
+@@ -256,7 +268,7 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
+             y: rotatedY,
+             size: element.fontSize,
+             font: activeFont,
+-            color: rgb(...parseHexColor(element.color)),
++            color: rgb(...parseHexColor(effectiveColor)),
+             rotate: degrees(-element.rotation),
+           })
+ 

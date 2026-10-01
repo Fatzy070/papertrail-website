@@ -58,7 +58,8 @@ export function EditorPage() {
     if (autoDownloadFired.current) return
     if (!searchParams.get('autoDownload')) return
     if (!billing) return
-    if (!billing.canExport) return
+    // TEMPORARY DEVELOPMENT TESTING BYPASS
+    // if (!billing.canExport) return
     autoDownloadFired.current = true
     // Remove the query param so a refresh doesn't re-trigger
     setSearchParams((prev) => { prev.delete('autoDownload'); return prev }, { replace: true })
@@ -256,10 +257,11 @@ export function EditorPage() {
     return exportPdf({ ...document, watermark }, elements)
   }
   async function download() {
-    if (!billing?.canExport) {
-      setShowExportGate(true)
-      return
-    }
+    // TEMPORARY DEVELOPMENT TESTING BYPASS
+    // if (!billing?.canExport) {
+    //   setShowExportGate(true)
+    //   return
+    // }
     
     try {
       const bytes = await generate()

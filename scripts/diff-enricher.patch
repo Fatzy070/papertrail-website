@@ -1,0 +1,99 @@
+diff --git a/src/engine/text-style-enricher.ts b/src/engine/text-style-enricher.ts
+index 5b3c5fe..9879413 100644
+--- a/src/engine/text-style-enricher.ts
++++ b/src/engine/text-style-enricher.ts
+@@ -37,6 +37,42 @@ interface MuPdfSpan {
+   isMono: boolean
+   isSerif: boolean
+   fontSize: number
++  color: string
++}
++
++function mupdfColorToHex(color: number[]): string {
++  if (!color || color.length === 0) return '#000000'
++
++  let r: number, g: number, b: number
++
++  if (color.length === 1) {
++    // Grayscale
++    r = g = b = Math.round(color[0] * 255)
++  } else if (color.length === 3) {
++    // RGB
++    r = Math.round(color[0] * 255)
++    g = Math.round(color[1] * 255)
++    b = Math.round(color[2] * 255)
++  } else if (color.length === 4) {
++    // CMYK
++    const c = color[0]
++    const m = color[1]
++    const y = color[2]
++    const k = color[3]
++    r = Math.round(255 * (1 - c) * (1 - k))
++    g = Math.round(255 * (1 - m) * (1 - k))
++    b = Math.round(255 * (1 - y) * (1 - k))
++  } else {
++    // Fallback for unknown color spaces
++    return '#000000'
++  }
++
++  // Ensure bounds
++  r = Math.max(0, Math.min(255, r))
++  g = Math.max(0, Math.min(255, g))
++  b = Math.max(0, Math.min(255, b))
++
++  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')
+ }
+ 
+ // ─── MuPDF span extraction ────────────────────────────────────────────────────
+@@ -68,6 +104,7 @@ function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
+           isMono: boolean
+           isSerif: boolean
+           fontSize: number
++          color: string
+           chars: string[]
+           x0: number
+           y0: number
+@@ -92,16 +129,18 @@ function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
+               isMono: currentSpan.isMono,
+               isSerif: currentSpan.isSerif,
+               fontSize: currentSpan.fontSize,
++              color: currentSpan.color,
+             })
+           }
+           currentSpan = null
+         }
+ 
+         structuredText.walk({
+-          onChar(c, origin, font, size, quad) {
++          onChar(c: string, origin: [number, number], font: mupdf.Font, size: number, quad: number[], color: number[]) {
+             const fontName = font.getName()
+             const isBold = font.isBold()
+             const isItalic = font.isItalic()
++            const hexColor = mupdfColorToHex(color)
+ 
+             // Flush when font changes
+             if (
+@@ -109,6 +148,7 @@ function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
+               (currentSpan.fontName !== fontName ||
+                 currentSpan.isBold !== isBold ||
+                 currentSpan.isItalic !== isItalic ||
++                currentSpan.color !== hexColor ||
+                 Math.abs(currentSpan.fontSize - size) > 0.5)
+             ) {
+               flushSpan()
+@@ -128,6 +168,7 @@ function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
+                 isMono: font.isMono(),
+                 isSerif: font.isSerif(),
+                 fontSize: size,
++                color: hexColor,
+                 chars: [],
+                 x0: qx0,
+                 y0: qy0,
+@@ -308,6 +349,7 @@ export async function enrichTextElementsWithMuPDF(
+       isItalic: span.isItalic,
+       isMono: span.isMono,
+       isSerif: span.isSerif,
++      color: span.color,
+     }
+   }
+ 
