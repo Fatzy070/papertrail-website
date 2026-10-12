@@ -98,7 +98,7 @@ export function LandingPage() {
       </div>
 
       <main className="pt-10">
-        <Hero reducedMotion={reducedMotion} />
+        <Hero />
         <EditorFeatures />
         <ToolsSection reducedMotion={reducedMotion} />
         <PricingSection />
@@ -111,7 +111,7 @@ export function LandingPage() {
 }
 
 function LandingHeader() {
-  const { data: user, isPending } = useCurrentUser()
+  const { hasAuthHint } = useCurrentUser()
 
   return (
     <header className="landing-header">
@@ -127,9 +127,7 @@ function LandingHeader() {
 
       <div className="landing-header-actions">
         <ThemeToggle />
-        {isPending ? (
-          <div className="skeleton" style={{ width: 140, height: 38, borderRadius: 20 }} />
-        ) : user ? (
+        {hasAuthHint ? (
           <Link to="/documents" className="primary-button">
             Go to dashboard <ArrowUpRight size={15} />
           </Link>
@@ -146,29 +144,22 @@ function LandingHeader() {
   )
 }
 
-function Hero({ reducedMotion }: { reducedMotion: boolean | null }) {
-  const { data: user, isPending } = useCurrentUser()
+function Hero() {
+  const { hasAuthHint } = useCurrentUser()
 
   return (
     <section className="landing-hero">
-      <motion.div
-        className="hero-copy"
-        initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55 }}
-      >
+      <div className="hero-copy">
         <p className="eyebrow"><span className="live-dot" /> YOUR DOCUMENTS. YOUR WAY.</p>
-        <h1>Less paperwork.<br />More <em>possibility.</em></h1>
+        <h1><span>Less paperwork.</span><span>More <em>possibility.</em></span></h1>
         <p className="hero-description">
           A considered workspace for your PDFs. Edit text, arrange pages, add your signature,
           and get back to the work that matters.
         </p>
         <div className="hero-actions">
-          {isPending ? (
-            <div className="skeleton" style={{ width: 180, height: 48, borderRadius: 24 }} />
-          ) : user ? (
+          {hasAuthHint ? (
             <Link to="/documents" className="primary-button">
-              Open your workspace <ArrowRight size={17} />
+              Go to dashboard <ArrowRight size={17} />
             </Link>
           ) : (
             <Link to="/register" className="primary-button">
@@ -180,7 +171,7 @@ function Hero({ reducedMotion }: { reducedMotion: boolean | null }) {
           </a>
         </div>
         <p className="hero-note">Free to edit. Export from ₦500. No subscription required.</p>
-      </motion.div>
+      </div>
 
       <EditorPreview />
     </section>
@@ -231,12 +222,12 @@ function EditorFeatures() {
 
       <div className="feature-grid">
         {features.map(({ icon: Icon, title, description }, index) => (
-          <article key={title}>
+          <Reveal key={title} className="feature-item" delay={index * 0.1}><article>
             <span className="feature-index">0{index + 1}</span>
             <Icon size={24} />
-            <h3>{title}</h3>
+            <h3>{index === 0 ? <motion.span className="feature-selection" initial={{ outlineColor: 'transparent' }} whileInView={{ outlineColor: 'var(--primary)' }} viewport={{ once: true, amount: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>{title}</motion.span> : title}</h3>
             <p>{description}</p>
-          </article>
+          </article></Reveal>
         ))}
       </div>
 
@@ -250,13 +241,13 @@ function EditorFeatures() {
 function ToolsSection({ reducedMotion }: { reducedMotion: boolean | null }) {
   return (
     <section id="tools" className="landing-section">
-      <div className="section-intro horizontal">
+      <Reveal className="section-intro horizontal">
         <div>
           <p className="eyebrow">THE REST OF YOUR TOOLKIT</p>
           <h2>Small tasks. Sorted.</h2>
         </div>
         <p>Keep the whole PDF workflow in one place, from combining files to converting pages.</p>
-      </div>
+      </Reveal>
 
       <motion.div
         initial={reducedMotion ? false : { opacity: 0, y: 20 }}
@@ -264,7 +255,7 @@ function ToolsSection({ reducedMotion }: { reducedMotion: boolean | null }) {
         viewport={{ once: true, amount: 0.1 }}
         transition={{ duration: 0.45 }}
       >
-        <ToolCatalog />
+        <ToolCatalog paperMotion />
       </motion.div>
     </section>
   )
@@ -280,7 +271,7 @@ function PricingSection() {
       />
 
       <div className="pricing-grid">
-        {plans.map((plan) => <PricingCard key={plan.name} plan={plan} />)}
+        {plans.map((plan, index) => <Reveal key={plan.name} delay={index * 0.1}><PricingCard plan={plan} /></Reveal>)}
       </div>
 
       <p className="pricing-footnote">
@@ -300,11 +291,11 @@ function SectionIntro({
   description: string
 }) {
   return (
-    <div className="section-intro">
+    <Reveal className="section-intro">
       <p className="eyebrow">{eyebrow}</p>
       <h2>{title}</h2>
       <p>{description}</p>
-    </div>
+    </Reveal>
   )
 }
 
@@ -330,33 +321,39 @@ function PricingCard({ plan }: { plan: Plan }) {
 }
 
 function FinalCallToAction() {
-  const { data: user, isPending } = useCurrentUser()
+  const { hasAuthHint } = useCurrentUser()
 
   return (
     <section className="landing-cta">
       <p className="eyebrow">THE NEXT PAGE IS YOURS</p>
       <h2>Make something<br /><em>ready to send.</em></h2>
-      {isPending ? (
-        <div className="skeleton" style={{ width: 180, height: 48, borderRadius: 24, margin: '0 auto' }} />
-      ) : (
-        <Link className="primary-button" to={user ? "/documents" : "/register"}>
-          Open your workspace <ArrowRight size={17} />
-        </Link>
-      )}
+      <Link className="primary-button" to={hasAuthHint ? '/documents' : '/register'}>
+        {hasAuthHint ? 'Go to dashboard' : 'Start editing for free'} <ArrowRight size={17} />
+      </Link>
     </section>
   )
 }
 
 function LandingFooter() {
-  const { data: user, isPending } = useCurrentUser()
+  const { hasAuthHint } = useCurrentUser()
 
   return (
     <footer className="landing-footer">
       <Brand />
       <span>Your document workspace.</span>
-      {!user && !isPending && <Link to="/login">Sign in</Link>}
+      {!hasAuthHint && <Link to="/login">Sign in</Link>}
       <Link to="/support">Help & feedback</Link>
       <a href="#pricing">Pricing</a>
     </footer>
   )
+}
+
+function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const reducedMotion = useReducedMotion()
+  return <motion.div className={className}
+    initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+    whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }}
+    transition={{ duration: 0.5, delay: reducedMotion ? 0 : delay, ease: 'easeOut' }}>
+    {children}
+  </motion.div>
 }
