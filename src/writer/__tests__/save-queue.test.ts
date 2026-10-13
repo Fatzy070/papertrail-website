@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { WriterSaveQueue } from "../../src/writer/save-queue";
-import type { WriterSnapshot } from "../../src/writer/writer.api";
+import { WriterSaveQueue } from "../save-queue";
+import type { WriterSnapshot } from "../writer.api";
 const snapshot: WriterSnapshot = {
   title: "Draft",
   content: { type: "doc", content: [{ type: "paragraph" }] },

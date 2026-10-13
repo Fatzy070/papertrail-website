@@ -5,14 +5,14 @@ import { Node as PMNode } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle, FontFamily, FontSize } from "@tiptap/extension-text-style";
-import { PageBreak } from "../../src/writer/pagination";
-import { RecoverySession } from "../../src/writer/recovery-session";
+import { PageBreak } from "../pagination";
+import { RecoverySession } from "../recovery-session";
 import {
   validRecovery,
   recoveryKind,
-} from "../../src/writer/recovery-validation";
-import type { RecoveryDraft } from "../../src/writer/recovery-store";
-import type { WriterDocument, WriterSpec } from "../../src/writer/writer.api";
+} from "../recovery-validation";
+import type { RecoveryDraft } from "../recovery-store";
+import type { WriterDocument, WriterSpec } from "../writer.api";
 const doc: WriterDocument = {
   id: "document",
   title: "Saved",
