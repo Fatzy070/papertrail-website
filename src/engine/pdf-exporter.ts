@@ -98,6 +98,14 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
           id: el.id,
           pageId: el.pageId,
           sourcePageIndex: pageInfo.sourcePageIndex,
+          // Horizontal native text has a reliable baseline and can be matched
+          // to MuPDF characters. Keep the existing path for other geometries.
+          sourceText: el.rotation === 0 && el.sourceStyle && el.originalText ? {
+            text: el.originalText,
+            x: bounds.x,
+            width: bounds.width,
+            baselineY: el.sourceStyle.baselineY,
+          } : undefined,
           rect: {
             x: bounds.x - PADDING,
             y: bounds.y - PADDING,
