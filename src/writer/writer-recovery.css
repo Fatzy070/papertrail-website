@@ -1,0 +1,46 @@
+.app-dialog:has(.writer-recovery) {
+  width: min(480px, calc(100vw - 24px));
+}
+.writer-recovery {
+  display: grid;
+  gap: 12px;
+}
+.writer-recovery p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.writer-recovery label {
+  display: grid;
+  gap: 8px;
+}
+.writer-recovery select {
+  max-width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.writer-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+.writer-recovery-actions button {
+  white-space: normal;
+}
+.writer-recovery-actions :focus-visible,
+.writer-recovery select:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+.writer-recovery-notice {
+  margin: 0;
+  padding: 8px 24px;
+  font-size: 12px;
+  background: var(--surface-muted);
+  color: var(--text);
+}

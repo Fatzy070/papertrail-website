@@ -1,4 +1,4 @@
-import * as mupdf from 'mupdf'
+import type * as mupdf from 'mupdf'
 
 type RedactionCapablePage = mupdf.PDFPage & {
   applyRedactions: (blackBoxes: boolean, imageMethod: number, lineArtMethod: number, textMethod: number) => void
@@ -38,6 +38,7 @@ export async function applyMuPdfRedactions(
   }
 
   try {
+    const mupdf = await import('mupdf')
     const baseDoc = mupdf.Document.openDocument(sourceBytes, 'application/pdf')
     const doc = baseDoc.asPDF()
     if (!doc) {

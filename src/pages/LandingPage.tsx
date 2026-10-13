@@ -11,12 +11,13 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ToolCatalog } from '../components/tools/ToolCatalog'
 import { Brand } from '../components/ui/Brand'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
 import { useCurrentUser } from '../hooks/use-auth'
+import '../styles/landing-writer.css'
 
 type Feature = {
   icon: LucideIcon
@@ -120,7 +121,7 @@ function LandingHeader() {
       </Link>
 
       <nav aria-label="Main navigation">
-        <a href="#editor">The editor</a>
+        <a href="#editor">Create & edit</a>
         <a href="#tools">PDF tools</a>
         <a href="#pricing">Pricing</a>
       </nav>
@@ -128,7 +129,7 @@ function LandingHeader() {
       <div className="landing-header-actions">
         <ThemeToggle />
         {hasAuthHint ? (
-          <Link to="/documents" className="primary-button">
+          <Link to="/dashboard" className="primary-button">
             Go to dashboard <ArrowUpRight size={15} />
           </Link>
         ) : (
@@ -153,17 +154,17 @@ function Hero() {
         <p className="eyebrow"><span className="live-dot" /> YOUR DOCUMENTS. YOUR WAY.</p>
         <h1><span>Less paperwork.</span><span>More <em>possibility.</em></span></h1>
         <p className="hero-description">
-          A considered workspace for your PDFs. Edit text, arrange pages, add your signature,
-          and get back to the work that matters.
+          Create PDFs from scratch or edit the ones you already have.
+          Write, format, sign, and organize — from first idea to final PDF.
         </p>
         <div className="hero-actions">
           {hasAuthHint ? (
-            <Link to="/documents" className="primary-button">
+            <Link to="/dashboard" className="primary-button">
               Go to dashboard <ArrowRight size={17} />
             </Link>
           ) : (
             <Link to="/register" className="primary-button">
-              Start editing for free <ArrowRight size={17} />
+              Start creating for free <ArrowRight size={17} />
             </Link>
           )}
           <a href="#editor" className="text-link">
@@ -212,14 +213,36 @@ function EditorPreview() {
 }
 
 function EditorFeatures() {
+  const [workflow, setWorkflow] = useState<'create' | 'edit'>('create')
+  const { hasAuthHint } = useCurrentUser()
   return (
     <section id="editor" className="landing-section feature-section">
       <SectionIntro
-        eyebrow="FROM FIRST EDIT TO FINAL FILE"
-        title={<>A PDF is a starting point.<br />Not the end of the story.</>}
-        description="One browser workspace for the changes, details, and finishing touches that make a document yours."
+        eyebrow="CREATE · EDIT · ORGANIZE · EXPORT"
+        title={<>A blank page or an existing PDF.<br />Make it yours.</>}
+        description="Start from scratch with Papertrail Writer, or open a PDF for the changes and finishing touches it needs."
       />
 
+      <div className="landing-workflow-choices" role="group" aria-label="Document workflow">
+        <button type="button" aria-pressed={workflow === 'create'} aria-controls="landing-workflow" onClick={() => setWorkflow('create')}>
+          <span>Create PDF</span><small>Start from scratch</small>
+        </button>
+        <button type="button" aria-pressed={workflow === 'edit'} aria-controls="landing-workflow" onClick={() => setWorkflow('edit')}>
+          <span>Edit PDF</span><small>Already have a PDF?</small>
+        </button>
+      </div>
+
+      <div id="landing-workflow" role="region" aria-label={workflow === 'create' ? 'Create PDF with Papertrail Writer' : 'Edit an existing PDF'}>
+      {workflow === 'create' ? <div className="landing-create-showcase">
+        <Reveal className="landing-create-copy">
+          <p className="eyebrow">PAPERTRAIL WRITER</p>
+          <h3>Your words.<br /> A document of your own.</h3>
+          <p>Write naturally, format your text, and let it flow across pages. Add page breaks where you need them. Your work saves as you go.</p>
+          <Link className="text-link" to={hasAuthHint ? '/dashboard' : '/register'}>Create a PDF <ArrowUpRight size={16} /></Link>
+          <p className="landing-create-note">Start with a blank document. Export as PDF when you're ready.</p>
+        </Reveal>
+        <WriterPreview />
+      </div> : <>
       <div className="feature-grid">
         {features.map(({ icon: Icon, title, description }, index) => (
           <Reveal key={title} className="feature-item" delay={index * 0.1}><article>
@@ -234,7 +257,34 @@ function EditorFeatures() {
       <p className="capability-note">
         PDFs vary. Text editing and font fidelity depend on the source document.
       </p>
+      <Link className="text-link" to={hasAuthHint ? '/documents' : '/register'}>Upload & edit a PDF <ArrowUpRight size={16} /></Link>
+      </>}
+      </div>
     </section>
+  )
+}
+
+function WriterPreview() {
+  const reducedMotion = useReducedMotion()
+  return (
+    <div className="landing-writer-preview" aria-hidden="true">
+      <div className="landing-writer-top"><span>Our next chapter</span><span><Check size={12} /> Saved</span><span className="landing-writer-export">Export PDF</span></div>
+      <div className="landing-writer-toolbar"><span>Paragraph</span><span>Writer Sans</span><span>12 pt</span><b>B</b><i>I</i><u>U</u></div>
+      <div className="landing-writer-desk">
+        <motion.div className="landing-writer-paper"
+          initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}>
+          <span className="landing-writer-label">A NEW BEGINNING</span>
+          <h4>Every idea starts<br />with a few words.</h4>
+          <p>A clear page gives an idea room to grow. Begin with a thought, find the right words, and make them your own.</p>
+          <p className="landing-writer-last-line">Here's to what comes next.<motion.span className="landing-writer-caret"
+            initial={{ opacity: 0 }} whileInView={reducedMotion ? { opacity: 0 } : { opacity: [0, 1, 0] }}
+            viewport={{ once: true }} transition={{ duration: 1, delay: 0.6 }} /></p>
+          <span className="landing-writer-page">01</span>
+        </motion.div>
+      </div>
+    </div>
   )
 }
 
@@ -327,8 +377,8 @@ function FinalCallToAction() {
     <section className="landing-cta">
       <p className="eyebrow">THE NEXT PAGE IS YOURS</p>
       <h2>Make something<br /><em>ready to send.</em></h2>
-      <Link className="primary-button" to={hasAuthHint ? '/documents' : '/register'}>
-        {hasAuthHint ? 'Go to dashboard' : 'Start editing for free'} <ArrowRight size={17} />
+      <Link className="primary-button" to={hasAuthHint ? '/dashboard' : '/register'}>
+        {hasAuthHint ? 'Go to dashboard' : 'Start creating for free'} <ArrowRight size={17} />
       </Link>
     </section>
   )

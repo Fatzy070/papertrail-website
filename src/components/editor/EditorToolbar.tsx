@@ -226,7 +226,7 @@ export function EditorToolbar({
             Fit W
           </button>
           <button 
-            className="icon-button text-[11px] font-medium px-1.5" 
+            className="icon-button text-[9px] font-medium px-1.5" 
             onClick={() => {
               const container = document.querySelector('.pdf-workspace')
               if (container && state.document?.pages[0]) {

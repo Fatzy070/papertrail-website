@@ -1,9 +1,14 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import PdfWorker from './pdf.worker.entry?worker'
 
-pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
+function ensurePdfWorker() {
+  if (!pdfjsLib.GlobalWorkerOptions.workerPort) {
+    pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
+  }
+}
 
 export async function loadPdfDocument(bytes: ArrayBuffer) {
+  ensurePdfWorker()
   // PDF.js transfers its input buffer to the worker. Retain the original for export.
   const loadingTask = pdfjsLib.getDocument({
     data: new Uint8Array(bytes.slice(0)),
