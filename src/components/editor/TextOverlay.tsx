@@ -7,6 +7,7 @@ import { resolveElementFontId, resolveElementBold, resolveElementItalic, resolve
 import type { EditorPage } from '../../types/editor'
 import { useSearchStore } from '../../store/search-store'
 import { useSearchResults } from '../../hooks/use-search-results'
+import { sourceNumberEdit } from '../../engine/source-number-edit'
 
 interface Props {
   element: TextElement
@@ -47,6 +48,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   const effectiveBold = resolveElementBold(element)
   const effectiveItalic = resolveElementItalic(element)
   const effectiveColor = resolveElementColor(element)
+  const numberEdit = isPdfText ? sourceNumberEdit(element) : null
 
   // Interaction rules:
   //  - PDF text: interactive only in edit-text mode
@@ -310,7 +312,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         if (e.key === 'Enter') { onSelect(element.id); setIsEditing(true) }
       }}
     >
-      {isPdfText && (element.edited || isEditable) && (
+      {isPdfText && !numberEdit && (element.edited || isEditable) && (
         <span aria-hidden="true" style={{
           position: 'absolute',
           left: ((element.originalBounds?.x ?? element.x) - element.x) * zoom,
@@ -320,6 +322,15 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
           background: '#fff',
           pointerEvents: 'none',
         }} />
+      )}
+      {numberEdit && (
+        <svg aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
+          {numberEdit.rects.map((r, i) => <rect key={i}
+            x={(r[0] - element.x) * zoom} y={(r[1] - element.y) * zoom}
+            width={(r[2] - r[0]) * zoom} height={(r[3] - r[1]) * zoom} fill="#fff" />)}
+          {numberEdit.glyphs.map((g, i) => <path key={i} d={g.path} fill={effectiveColor}
+            transform={`translate(${(g.x - element.x) * zoom} ${(g.y - element.y) * zoom}) scale(${g.scale * zoom} ${-g.scale * zoom})`} />)}
+        </svg>
       )}
       {isEditable ? (
         <textarea
@@ -352,6 +363,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
           wrap="soft"
           style={{
             ...textStyle,
+            ...(numberEdit ? { color: 'transparent', caretColor: effectiveColor } : {}),
             width: '100%',
             height: '100%',
             background: 'transparent',
@@ -376,7 +388,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
             ...textStyle,
             // For unedited PDF text, render transparent to not double-paint
             color:
-              element.edited || element.source === 'user' || element.link
+              !numberEdit && (element.edited || element.source === 'user' || element.link)
                 ? textStyle.color
                 : 'transparent',
             background: element.edited && !isPdfText ? 'rgba(255, 255, 255, 0.92)' : 'transparent',

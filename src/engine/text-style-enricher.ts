@@ -16,6 +16,7 @@
 import type * as mupdf from 'mupdf'
 import { normalizePdfFontName } from './font-registry'
 import type { TextElement, EditorPage } from '../types/editor'
+import { registerSourceNumbers } from './source-number-edit'
 
 // ─── Internal types ──────────────────────────────────────────────────────────
 
@@ -367,5 +368,8 @@ export async function enrichTextElementsWithMuPDF(
     }
   }
 
+  try { await registerSourceNumbers(elements, pdfBytes, pages) } catch (error) {
+    console.warn('[text-style-enricher] Source number font unavailable:', error)
+  }
   return elements
 }

@@ -10,6 +10,7 @@ import { exportPdf } from '../pdf-exporter'
 import { sourceGlyphRect } from '../mupdf/source-glyph-geometry'
 import { applyMuPdfRedactions } from '../mupdf/mupdf-redaction'
 import { resolveElementFontId } from '../font-registry'
+import { sourceNumberEdit } from '../source-number-edit'
 import type { EditorPage } from '../../types/editor'
 
 function characters(bytes: Uint8Array) {
@@ -120,5 +121,78 @@ test('actual salary PDF: both amounts, neighboring pixels, save/reopen/export', 
     assert.equal(characters(savedExport).map(c => c.text).join(''), actual.map(c => c.text).join(''))
     const reloaded = await elements(output)
     assert.equal(characters(await exportPdf(reloaded.state, reloaded.result)).map(c => c.text).join(''), actual.map(c => c.text).join(''))
+  }
+})
+
+test('SF UI amount edits retain embedded outlines, adjacent text, search and reopened editing', { skip: !process.env.SFUI_SOURCE_PDF }, async (t) => {
+  const originalFetch = globalThis.fetch
+  t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === 'string' && input.startsWith('/fonts/')) {
+      return new Response(readFileSync(new URL('../../../public' + input, import.meta.url)))
+    }
+    return originalFetch(input, init)
+  })
+  const bytes = new Uint8Array(readFileSync(process.env.SFUI_SOURCE_PDF!))
+  const original = characters(bytes)
+  for (const [oldText, newAmount] of [['250,000 to', '300,000'], ['200,000', '300,000'], ['200,000', '100,000'], ['200,000', '900,000']]) {
+    const { result, state } = await elements(bytes)
+    const element = result.find(e => e.text === oldText)!
+    assert.ok(element)
+    const edited = { ...element, text: oldText.replace(/2[05]0,000/, newAmount), edited: true }
+    const plan = sourceNumberEdit(edited)
+    assert.ok(plan, 'Embedded SF UI font must be matched')
+    assert.equal(plan.glyphs.map(g => g.text).join(''), newAmount)
+    assert.ok(plan.name.includes('SFUI'))
+    assert.equal(sourceNumberEdit({ ...edited, styleOverrides: { bold: true } }), null, 'Explicit formatting keeps the existing path')
+    assert.equal(plan.glyphs[0].name, /^[19]/.test(newAmount) ? 'Arimo-Bold' : plan.name, 'Only missing digits use matching-weight fallback')
+    assert.ok(plan.glyphs.slice(1).every(g => g.name === plan.name), 'Unchanged digits keep the embedded source font')
+    const edits = result.map(e => e === element ? edited : e)
+    const output = await exportPdf(state, edits)
+    const actual = characters(output)
+    for (const c of original) {
+      const replaced = plan.glyphs.some(g => Math.abs(g.x - c.x) < .01 && Math.abs(g.y - c.baseline) < .01)
+      if (!replaced) assert.ok(actual.some(a => a.text === c.text && Math.abs(a.x - c.x) < .01 && Math.abs(a.baseline - c.baseline) < .01), 'Keep every neighboring glyph in place')
+    }
+    const loading = getDocument({ data: output.slice() })
+    const pdf = await loading.promise
+    const extracted = await (await pdf.getPage(1)).getTextContent()
+    assert.ok(extracted.items.map(item => 'str' in item ? item.str : '').join('').includes(newAmount), 'Searchable replacement must remain a complete number')
+    assert.ok(!extracted.items.some(item => 'str' in item && item.str.includes(oldText.split(' ')[0])), 'Original amount must be removed')
+    await loading.destroy()
+    // Source glyphs, rather than a substitute font, must rasterize identically
+    // outside the two actually changed digit cells.
+    const render = (data: Uint8Array) => mupdf.Document.openDocument(data, 'application/pdf').loadPage(0)
+      .toPixmap(mupdf.Matrix.scale(3, 3), mupdf.ColorSpace.DeviceRGB, false)
+    const before = render(bytes), after = render(output)
+    const a = before.getPixels(), b = after.getPixels()
+    let outside = 0
+    for (let i = 0; i < a.length; i += 3) {
+      if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2]) continue
+      const x = (i / 3) % before.getWidth(), y = Math.floor(i / 3 / before.getWidth())
+      const changed = plan.glyphs.some((g, j) => g.text !== oldText[j] && x >= Math.floor(g.rect[0] * 3) && x <= Math.ceil(g.rect[2] * 3) && y >= Math.floor(g.rect[1] * 3) && y <= Math.ceil(g.rect[3] * 3))
+      if (!changed) outside++
+    }
+    assert.equal(outside, 0, 'Unchanged number glyphs and neighbors retain their appearance')
+    if (/^[19]/.test(newAmount)) {
+      const g = plan.glyphs[0]
+      let ink = 0
+      for (let y = Math.ceil(g.rect[1] * 3); y < Math.floor(g.rect[3] * 3); y++) {
+        for (let x = Math.ceil(g.rect[0] * 3); x < Math.floor(g.rect[2] * 3); x++) {
+          if (b[(y * after.getWidth() + x) * 3] < 128) ink++
+        }
+      }
+      assert.ok(ink > 10, 'Missing-subset digit must actually render, not only remain searchable')
+    }
+    const repeated = await exportPdf({ ...state, bytes: output.slice().buffer }, edits)
+    assert.equal(characters(repeated).map(c => c.text).join(''), actual.map(c => c.text).join(''))
+    const reloaded = await elements(output)
+    if (/^[19]/.test(newAmount)) {
+      const reexported = await exportPdf(reloaded.state, reloaded.result)
+      assert.equal(characters(reexported).map(c => c.text).join(''), actual.map(c => c.text).join(''))
+      continue
+    }
+    const amount = reloaded.result.find(e => e.text === '300,000')!
+    assert.ok(amount)
+    assert.ok(sourceNumberEdit({ ...amount, text: '500,000', edited: true }), 'Reopened source can reuse its original font again')
   }
 })

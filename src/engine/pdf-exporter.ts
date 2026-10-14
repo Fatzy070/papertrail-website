@@ -18,6 +18,7 @@ import {
   type FontVariant,
 } from './font-registry'
 import { applyMuPdfRedactions, type PendingRedaction } from './mupdf/mupdf-redaction'
+import { sourceNumberEdit } from './source-number-edit'
 
 /** Resolve a variant name from bold/italic flags */
 function variantFromFlags(bold?: boolean, italic?: boolean): FontVariant {
@@ -84,6 +85,8 @@ async function getOrEmbedFont(
 
 
 export async function exportPdf(documentState: PdfDocumentState, allElements: EditorElement[]) {
+  const numberEdits = new Map(allElements.flatMap(el => el.type === 'text' && el.source === 'pdf' && el.edited
+    ? [[el.id, sourceNumberEdit(el)] as const] : []))
   // Extract pending redactions
   const pendingRedactions: PendingRedaction[] = []
   const redactedElementIds = new Set<string>()
@@ -92,6 +95,15 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
     if (el.type === 'text' && el.source === 'pdf' && (el.deleted || el.edited)) {
       const pageInfo = documentState.pages.find(p => p.id === el.pageId)
       if (pageInfo && pageInfo.kind === 'source') {
+        const numberEdit = numberEdits.get(el.id)
+        if (numberEdit) {
+          for (const [x0, y0, x1, y1] of numberEdit.rects) pendingRedactions.push({
+            id: el.id, pageId: el.pageId, sourcePageIndex: pageInfo.sourcePageIndex,
+            rect: { x: x0, y: y0, width: x1 - x0, height: y1 - y0 },
+          })
+          redactedElementIds.add(el.id)
+          continue
+        }
         const bounds = el.originalBounds ?? el
         const PADDING = 2 // 2pt padding to ensure we catch edges of glyphs (e.g. slanted italics)
         pendingRedactions.push({
@@ -139,6 +151,7 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
 
   // Per-export font cache (avoids re-fetching / re-embedding same font)
   const embedCache: EmbedCache = new Map()
+  const sourceFonts = new Map<Uint8Array, PDFFont>()
 
   // Iterate over documentState.pages and reconstruct the PDF
   const pageIdToIndex = new Map<string, number>()
@@ -195,6 +208,27 @@ export async function exportPdf(documentState: PdfDocumentState, allElements: Ed
 
     if (element.type === 'text') {
       if (element.deleted) continue;
+      const numberEdit = numberEdits.get(element.id)
+      if (numberEdit) {
+        if (numberEdit.glyphs.length) {
+          for (const glyph of numberEdit.glyphs) {
+            let font = sourceFonts.get(glyph.bytes)
+            if (!font) {
+              // The bundled Arimo preview is metrically compatible with Base-14
+              // Helvetica. Use the standard PDF face for missing source glyphs.
+              font = glyph.standardFont
+                ? await pdf.embedFont(glyph.standardFont === 'Helvetica-Bold' ? StandardFonts.HelveticaBold : StandardFonts.Helvetica)
+                : await pdf.embedFont(glyph.bytes, { subset: true, customName: glyph.name })
+              sourceFonts.set(glyph.bytes, font)
+            }
+            page.drawText(glyph.text, {
+              x: glyph.x, y: pageHeight - glyph.y, size: glyph.size, font,
+              color: rgb(...parseHexColor(resolveElementColor(element))),
+            })
+          }
+        }
+        continue
+      }
       
       if (element.source === 'pdf' && !element.edited) {
         // Native text is already in the PDF. Only draw it if we added a link or modified it.

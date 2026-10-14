@@ -142,3 +142,79 @@ Regression/report files restored after the temporary session files disappeared:
 Other changes in that existing commit are not part of this fix. No backend files,
 Writer files, editor stores, authentication, billing, Support, or Admin were changed
 by this task.
+
+## New SF UI document — October 14 follow-up
+
+The newly supplied PDF differs from the original Arimo document above. PDF.js
+item 22 is `250,000 to` (x=121.07031094, width=53.58099915), while item 25 is
+`200,000` (x=183.56323416, width=41.44303923). Both are 9.6012972pt with
+baseline 280.1259pt. Currency symbols are separate items. In this document the
+first number really does share a PDF.js run with the following word.
+
+MuPDF exposes individual characters, baseline 280.12585449, with vertical quads
+270.98541260–282.43975830. It reports `.SFUI-Regular_wdth_opsz1`, isBold=false,
+and isSerif=true for the amounts. The full embedded PDF font name is
+`AAAAAB+.SFUI-Regular_wdth_opsz110000_GRAD_wght2BC0000`: the variable weight is
+lost in the shortened name. Existing font resolution substitutes Times Regular,
+changing both the appearance and spacing of the whole run, including `to`.
+
+The narrow correction matches SF UI numeric source runs to their actual embedded
+font by character advances. Same-length numeric edits with available embedded
+glyphs use those outlines in an SVG preview and embed that program on export.
+Characters keep their original X origins and baseline. Only the corrected number
+is truly redacted and redrawn; neighboring words/currency/punctuation remain native.
+The first number's character rectangles span x=121.08031250–162.30172180; the
+second spans x=183.57323242–224.99627136 (individual inset rectangles, not a padded
+parent-run rectangle). Both retain the source baseline 280.12585449pt.
+
+No font bytes or glyph caches are persisted in document state. A WeakMap follows
+source-style object identity through immutable edits/history. Reopening extracts
+and registers the original Unicode-capable font again; generated subsets without
+cmap are skipped. Explicit formatting, moved/rotated text, different-length edits,
+and characters missing from the embedded subset retain the existing edit path.
+This is not a universal missing-font replacement system.
+
+Verification on the new private PDF:
+
+- `250,000 -> 300,000` and `200,000 -> 300,000`: live Chromium preview and export.
+- Both currency symbols, `to`, comma, and all neighboring glyph positions survive.
+- At 3x raster resolution, zero pixels differ outside the actually changed digits.
+- PDF.js extracts the complete new number and not the removed amount.
+- Save-byte replacement/re-export, re-extraction, and a subsequent `500,000` edit pass.
+- Chromium checks at 100%, 125%, and 200% retain the same canonical geometry.
+- Local save/reopen was tested; authenticated cloud persistence was not exercised.
+- Full regression run: 36 passed, one skipped (the older private Arimo PDF, whose
+  supplied path now contains this newer file). Build and lint pass; build retains
+  the existing large-chunk warning. There is no npm test script.
+
+Run the new private-file regression with `SFUI_SOURCE_PDF=/path/to/new.pdf`.
+The source PDF and its proprietary font are not committed as test fixtures.
+
+Files in this follow-up: `source-number-edit.ts` (new), `text-style-enricher.ts`,
+`pdf-exporter.ts`, `TextOverlay.tsx`, `source-text-fidelity.test.ts`, and this report.
+No Writer/backend files or global MuPDF redaction policies changed.
+
+### Missing-digit follow-up
+
+`200,000 -> 100,000` exposed a gap in the first SF UI fix: the bold embedded
+subset has no glyph for `1` (nor `4`, `6`, `8`, or `9`). The prior implementation
+returned to whole-run Times substitution when any replacement glyph was missing.
+It now keeps the precise numeric geometry and original outlines for every
+available glyph, using a matching-weight sans-serif fallback only for missing
+digits. Weight is read from the full PDF font resource's fixed-point `wght`
+value (700 here), not the misleading shortened Regular name.
+
+Preview uses the already bundled Arimo outline; PDF export uses the metrically
+compatible Base-14 Helvetica face for that missing digit. This is a substitute
+for an absent glyph, not a claim to recover the original SF UI outline. The rest
+of the number remains in its original font. Bundled Arimo TTF subsetting exposed
+invalid composite glyphs during testing, so this path uses the existing standard
+PDF font rather than shipping an unreadable fallback subset.
+
+Added `100,000` and `900,000` coverage, including actual raster ink at the new
+digit (searchability alone does not prove a glyph rendered), zero pixel changes
+outside changed digit cells, preserved neighboring glyphs/baselines, and local
+save/reopen/export. Live Chromium typing checks cover `100,000` and the previous
+`300,000` case at 100%, 125%, and 200%. Authenticated cloud persistence was not
+exercised. Only `source-number-edit.ts`, `pdf-exporter.ts`, the source-text test,
+and this report changed in this follow-up; no Writer or global redaction changes.
