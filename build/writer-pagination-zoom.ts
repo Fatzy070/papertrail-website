@@ -28,6 +28,7 @@ export function writerPaginationZoom(): Plugin {
           "@tiptap/pm/state",
           "@tiptap/pm/view",
           "@tiptap/pm/transform",
+          "@tiptap/pm/tables",
         ],
       },
       resolve: {
@@ -38,6 +39,7 @@ export function writerPaginationZoom(): Plugin {
           "prosemirror-state",
           "prosemirror-model",
           "prosemirror-transform",
+          "prosemirror-tables",
         ],
       },
     }),

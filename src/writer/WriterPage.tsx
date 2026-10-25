@@ -6,13 +6,14 @@ import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
-import { ArrowLeft, Download, RemoveFormatting } from "lucide-react";
+import { ArrowLeft, Download, Minus, RemoveFormatting } from "lucide-react";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { LoadingState } from "../components/ui/LoadingState";
 import { writerApi } from "./writer.api";
 import type {
   PageSettings,
   WriterDocument,
+  WriterExportFormat,
   WriterSnapshot,
   WriterSpec,
 } from "./writer.api";
@@ -29,8 +30,14 @@ import {
 } from "./pagination";
 import { writerHighlight } from "./highlight";
 import { WriterHighlightButton } from "./WriterHighlightButton";
+import { WriterTextColorButton } from "./WriterTextColorButton";
 import { WriterWorkspace, WriterZoomControl } from "./WriterView";
 import { WriterLinkButton } from "./WriterLinkButton";
+import { WriterTableButton } from "./WriterTableButton";
+import { WriterImageButton } from "./WriterImageButton";
+import { WriterHorizontalRule } from "./horizontal-rule";
+import { writerTableExtensions } from "./table";
+import { createWriterImageExtension } from "./image";
 import { useCurrentUser } from "../hooks/use-auth";
 import { WriterRecoveryGate } from "./WriterRecoveryGate";
 import { RecoverySession } from "./recovery-session";
@@ -127,6 +134,7 @@ function WriterSession({
     recoveryDraft ? "Unsaved changes" : "Saved",
   );
   const [busy, setBusy] = useState(false);
+  const [exportFormat, setExportFormat] = useState<WriterExportFormat>("pdf");
   const [zoom, setZoom] = useState(100);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -174,7 +182,9 @@ function WriterSession({
   }, [client, opened, recovery, recoveryDraft]);
   const update = (changes: Partial<WriterSnapshot>) => {
     latest.current = { ...latest.current, ...changes };
-    setSnapshot(latest.current);
+    if (changes.title !== undefined || changes.pageSettings !== undefined) {
+      setSnapshot(latest.current);
+    }
     recovery.update(latest.current);
     queue.current?.update(latest.current);
   };
@@ -193,6 +203,13 @@ function WriterSession({
       TextStyle,
       writerHighlight(spec),
       WriterOrderedList,
+      WriterHorizontalRule,
+      ...writerTableExtensions,
+      createWriterImageExtension({
+        documentId: opened.id,
+        fetchAssetObjectUrl: writerApi.fetchAssetObjectUrl,
+        invalidateAssetUrl: writerApi.invalidateAssetUrl,
+      }),
       ...writerFontExtensions(spec),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       PageBreak,
@@ -212,6 +229,15 @@ function WriterSession({
           if (spec.fontSizes.includes(points))
             element.style.fontSize = `${points}pt`;
           else element.style.removeProperty("font-size");
+          if (element.style.color) {
+            const rawColor = element.style.color.trim().toLowerCase();
+            const allowedColors = (spec.textColors ?? []).map((c) =>
+              c.value.toLowerCase(),
+            );
+            if (!allowedColors.includes(rawColor)) {
+              element.style.removeProperty("color");
+            }
+          }
         });
         return document.body.innerHTML;
       },
@@ -254,28 +280,39 @@ function WriterSession({
       );
     }
   };
-  const exportPdf = async () => {
+  const exportDocument = async () => {
     if (!editor || !queue.current) return;
     setBusy(true);
     setError("");
     editor.setEditable(false);
     try {
+      update({ content: editor.getJSON() });
       const revision = await queue.current.flush();
-      const blob = await writerApi.export(opened.id, revision);
+      const blob = await writerApi.export(opened.id, revision, exportFormat);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${latest.current.title.trim() || "Untitled document"}.pdf`;
+      a.download = `${latest.current.title.trim() || "Untitled document"}.${exportFormat}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to prepare PDF.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : `Unable to prepare ${exportFormat.toUpperCase()} export.`,
+      );
     } finally {
       setBusy(false);
       editor.setEditable(true);
     }
   };
   const dimensions = pageDimensions(snapshot.pageSettings, spec);
+  const formatLabels: Record<WriterExportFormat, string> = {
+    pdf: "PDF",
+    docx: "DOCX",
+    html: "HTML",
+    txt: "TXT",
+  };
   return (
     <div className="writer-app">
       <style>{spec.css}</style>
@@ -298,16 +335,32 @@ function WriterSession({
           />
         </label>
         <span role="status" className="writer-save">
-          {busy ? "Preparing PDF…" : status}
+          {busy ? `Preparing ${formatLabels[exportFormat]}…` : status}
         </span>
         <ThemeToggle />
-        <button
-          className="primary-button"
-          onClick={() => void exportPdf()}
-          disabled={busy || !editor}
-        >
-          <Download size={16} /> Export PDF
-        </button>
+        <div className="writer-export-group">
+          <select
+            aria-label="Export format"
+            className="writer-export-select"
+            value={exportFormat}
+            disabled={busy || !editor}
+            onChange={(e) =>
+              setExportFormat(e.target.value as WriterExportFormat)
+            }
+          >
+            <option value="pdf">PDF (.pdf)</option>
+            <option value="docx">Word (.docx)</option>
+            <option value="html">HTML (.html)</option>
+            <option value="txt">Plain text (.txt)</option>
+          </select>
+          <button
+            className="primary-button"
+            onClick={() => void exportDocument()}
+            disabled={busy || !editor}
+          >
+            <Download size={16} /> Export {formatLabels[exportFormat]}
+          </button>
+        </div>
       </header>
       {recoveryNotice && (
         <p role="status" className="writer-recovery-notice">
@@ -319,7 +372,15 @@ function WriterSession({
           {error}
         </p>
       )}
-      {editor && <WriterToolbar editor={editor} spec={spec} disabled={busy} />}
+      {editor && (
+        <WriterToolbar
+          editor={editor}
+          spec={spec}
+          documentId={opened.id}
+          disabled={busy}
+          onError={setError}
+        />
+      )}
       <fieldset className="writer-page-settings" disabled={busy}>
         <legend className="sr-only">Page settings</legend>
         <label>
@@ -395,6 +456,7 @@ function clearInlineFormatting(editor: Editor) {
     .unsetBold()
     .unsetItalic()
     .unsetUnderline()
+    .unsetColor()
     .unsetMark("textStyle")
     .unsetHighlight()
     .run();
@@ -402,11 +464,15 @@ function clearInlineFormatting(editor: Editor) {
 function WriterToolbar({
   editor,
   spec,
+  documentId,
   disabled,
+  onError,
 }: {
   editor: Editor;
   spec: WriterSpec;
+  documentId: string;
   disabled: boolean;
+  onError: (message: string) => void;
 }) {
   const state = useEditorState({
     editor,
@@ -536,9 +602,27 @@ function WriterToolbar({
       >
         Numbered
       </button>
+      <WriterTextColorButton editor={editor} colors={spec.textColors} />
       <WriterHighlightButton editor={editor} colors={spec.highlightColors} />
       <WriterLinkButton editor={editor} />
+      <WriterImageButton
+        editor={editor}
+        documentId={documentId}
+        disabled={disabled}
+        onError={onError}
+      />
+      <WriterTableButton editor={editor} disabled={disabled} />
       <button
+        type="button"
+        title="Insert horizontal divider"
+        aria-label="Horizontal rule"
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+      >
+        <Minus size={15} aria-hidden="true" />
+        Divider
+      </button>
+      <button
+        type="button"
         onClick={() =>
           editor
             .chain()

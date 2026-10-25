@@ -1,12 +1,12 @@
-import { FontFamily, FontSize } from "@tiptap/extension-text-style";
+import { Color, FontFamily, FontSize } from "@tiptap/extension-text-style";
 import type { WriterSpec } from "./writer.api";
 
 /** CSSStyleDeclaration returns "" for absent styles. Keep the canonical JSON
  * null/default instead, and constrain imported styles to our rendering spec. */
 export function writerFontExtensions(
-  spec: Pick<WriterSpec, "fontFamilies" | "fontSizes">,
+  spec: Pick<WriterSpec, "fontFamilies" | "fontSizes" | "textColors">,
 ) {
-  return [
+  const extensions = [
     FontFamily.extend({
       addGlobalAttributes() {
         return [
@@ -46,4 +46,34 @@ export function writerFontExtensions(
       },
     }),
   ];
+
+  if (spec.textColors?.length) {
+    const palette = spec.textColors;
+    extensions.push(
+      Color.extend({
+        addGlobalAttributes() {
+          return [
+            {
+              types: ["textStyle"],
+              attributes: {
+                color: {
+                  ...this.parent?.()[0].attributes.color,
+                  parseHTML: (element: HTMLElement) => {
+                    const raw = element.style.color?.trim().toLowerCase();
+                    if (!raw) return null;
+                    const exact = palette.find(
+                      (c) => c.value.toLowerCase() === raw,
+                    );
+                    return exact ? exact.value : null;
+                  },
+                },
+              },
+            },
+          ];
+        },
+      }),
+    );
+  }
+
+  return extensions;
 }

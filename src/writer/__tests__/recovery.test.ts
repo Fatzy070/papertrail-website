@@ -4,8 +4,11 @@ import { getSchema } from "@tiptap/core";
 import { Node as PMNode } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle, FontFamily, FontSize } from "@tiptap/extension-text-style";
+import { TextStyle, FontFamily, FontSize, Color } from "@tiptap/extension-text-style";
 import { PageBreak } from "../pagination";
+import { WriterHorizontalRule } from "../horizontal-rule";
+import { writerTableExtensions } from "../table";
+import { WriterImage } from "../image";
 import { RecoverySession } from "../recovery-session";
 import {
   validRecovery,
@@ -32,6 +35,10 @@ const spec: WriterSpec = {
   defaultPage: doc.pageSettings,
   pageSizes: { A4: [210, 297], Letter: [215.9, 279.4] },
   highlightColors: [{ name: "Yellow", value: "#fef08a" }],
+  textColors: [
+    { name: "Default ink", value: "#202522" },
+    { name: "Royal blue", value: "#2563eb" },
+  ],
   fontFamilies: ["Writer Sans", "Writer Serif"],
   fontSizes: [8, 10, 11, 12, 14, 16, 18, 24, 30, 36],
 };
@@ -259,6 +266,10 @@ const schema = getSchema([
   TextStyle,
   FontFamily,
   FontSize,
+  Color,
+  WriterHorizontalRule,
+  ...writerTableExtensions,
+  WriterImage,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   PageBreak,
 ]);
@@ -345,9 +356,13 @@ test("malformed or unsafe link marks are still rejected", () => {
     assert.equal(validRecovery(bad, "a", doc.id, spec), false);
 });
 test("representative mixed-format Writer document from the real schema is accepted unchanged", () => {
-  const style = (fontFamily: string | null, fontSize: string | null) => ({
+  const style = (
+    fontFamily: string | null,
+    fontSize: string | null,
+    color: string | null = null,
+  ) => ({
     type: "textStyle",
-    attrs: { fontFamily, fontSize },
+    attrs: { fontFamily, fontSize, color },
   });
   const content = serialize({
     type: "doc",
@@ -525,4 +540,173 @@ test("official Highlight JSON and six combined inline marks recover; unsafe colo
   }
   draft.content.content![0].content![0].marks![0].attrs!.color = null;
   assert.equal(validRecovery(draft, "a", doc.id, spec), true);
+});
+
+test("tables, images, horizontal rules, and text colors round-trip through Tiptap schema and recovery validation", () => {
+  const assetId = "65f000000000000000000099";
+  const richContent = serialize({
+    type: "doc",
+    content: [
+      {
+        type: "heading",
+        attrs: { level: 2, textAlign: "left" },
+        content: [
+          {
+            type: "text",
+            text: "Section with Image, Table & Divider",
+            marks: [
+              {
+                type: "textStyle",
+                attrs: {
+                  fontFamily: "Writer Sans",
+                  fontSize: "16pt",
+                  color: "#2563eb",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { type: "horizontalRule" },
+      {
+        type: "image",
+        attrs: {
+          assetId,
+          alt: "Product Screenshot",
+          width: 320,
+          align: "center",
+        },
+      },
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              {
+                type: "tableHeader",
+                attrs: { colspan: 1, rowspan: 1, colwidth: [180] },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Feature" }],
+                  },
+                ],
+              },
+              {
+                type: "tableHeader",
+                attrs: { colspan: 1, rowspan: 1, colwidth: null },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Status" }],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "tableRow",
+            content: [
+              {
+                type: "tableCell",
+                attrs: { colspan: 1, rowspan: 1, colwidth: [180] },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Editable Tables" }],
+                  },
+                ],
+              },
+              {
+                type: "tableCell",
+                attrs: { colspan: 1, rowspan: 1, colwidth: null },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Complete" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { type: "paragraph" },
+    ],
+  });
+
+  const draft = withContent(richContent);
+  assert.equal(validRecovery(draft, "a", doc.id, spec), true);
+  assert.deepEqual(serialize(draft.content), richContent);
+
+  // Reject invalid image, table, horizontalRule, and text color variations
+  for (const invalidContent of [
+    // Arbitrary image src
+    {
+      type: "doc",
+      content: [{ type: "image", attrs: { src: "https://evil.example/a.png" } }],
+    },
+    // Non-hex assetId
+    {
+      type: "doc",
+      content: [{ type: "image", attrs: { assetId: "not-an-object-id" } }],
+    },
+    // Out-of-range image width
+    {
+      type: "doc",
+      content: [{ type: "image", attrs: { assetId, width: 1500 } }],
+    },
+    // Empty table
+    {
+      type: "doc",
+      content: [{ type: "table", content: [] }],
+    },
+    // Table cell with no block children
+    {
+      type: "doc",
+      content: [
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [{ type: "tableCell", content: [] }],
+            },
+          ],
+        },
+      ],
+    },
+    // Horizontal rule with child nodes
+    {
+      type: "doc",
+      content: [
+        {
+          type: "horizontalRule",
+          content: [{ type: "text", text: "nope" }],
+        },
+      ],
+    },
+    // Unapproved textStyle color
+    {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "bad",
+              marks: [{ type: "textStyle", attrs: { color: "#123456" } }],
+            },
+          ],
+        },
+      ],
+    },
+  ]) {
+    assert.equal(
+      validRecovery(withContent(invalidContent), "a", doc.id, spec),
+      false,
+    );
+  }
 });

@@ -723,3 +723,269 @@
   stroke-width: 3;
 }
 .writer-content mark { padding: 0; color: inherit; }
+
+/* Export Format Selector Group */
+.writer-export-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.writer-export-select {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  min-height: 36px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Override tiptap-pagination-plus internal table display/scroll rules */
+.writer-app .writer-content.rm-with-pagination table {
+  display: table !important;
+  width: 100% !important;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.writer-app .writer-content.rm-with-pagination table tbody {
+  display: table-row-group !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.writer-content td.selectedCell,
+.writer-content th.selectedCell {
+  background: rgba(59, 130, 246, 0.14);
+}
+.writer-content hr.ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Anchored Table Popover */
+.writer-table-popover {
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  width: 248px;
+  max-width: calc(100vw - 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+}
+.writer-table-popover-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.writer-table-popover-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+.writer-table-dimensions-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--surface-hover);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.writer-table-grid-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+}
+.writer-table-grid-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.08s ease, border-color 0.08s ease;
+}
+.writer-table-grid-cell.active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: var(--primary);
+}
+.writer-table-custom-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.writer-table-custom-inputs label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.writer-table-custom-inputs input {
+  width: 56px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+}
+.writer-table-header-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.writer-table-insert-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.writer-table-actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.writer-table-popover-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.writer-table-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.writer-table-actions-grid button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+.writer-table-actions-grid button:hover {
+  background: var(--surface-hover);
+}
+.writer-table-span-2 {
+  grid-column: span 2;
+}
+.writer-table-danger-btn {
+  color: #dc2626 !important;
+  border-color: rgba(220, 38, 38, 0.35) !important;
+}
+
+/* Writer Image NodeView */
+.writer-content figure.writer-image {
+  position: relative;
+  margin: 0.75em 0;
+  max-width: 100%;
+  clear: none;
+}
+.writer-content .writer-image-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  min-width: 60px;
+}
+.writer-content .writer-image.is-selected .writer-image-frame {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.writer-content .writer-image-el {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 2px;
+}
+.writer-content .writer-image-status {
+  padding: 12px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font: 12px "Writer Sans", sans-serif;
+  text-align: center;
+}
+.writer-content .writer-image-controls {
+  display: none;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.84);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.writer-content .writer-image:hover .writer-image-controls,
+.writer-content .writer-image.is-selected .writer-image-controls {
+  display: inline-flex;
+}
+.writer-content .writer-image-controls button {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  font: 600 10px "Writer Sans", sans-serif;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+.writer-content .writer-image-controls button.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+.writer-content .writer-image-controls button.danger {
+  color: #fca5a5;
+}
+.writer-content .writer-image-size-label {
+  font: 600 10px "Writer Sans", sans-serif;
+  padding: 0 3px;
+}
+.writer-content .writer-image-resize-handle {
+  display: none;
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #2563eb;
+  border: 2px solid #fff;
+  cursor: nwse-resize;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.writer-content .writer-image:hover .writer-image-resize-handle,
+.writer-content .writer-image.is-selected .writer-image-resize-handle {
+  display: block;
+}

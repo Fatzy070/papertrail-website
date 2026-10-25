@@ -65,15 +65,28 @@ export const ManualBreakLayout = Extension.create({
           const layout = () => {
             frame = 0;
             if (dead || view.composing) return;
+            // Deduplicate excess pagination <style> nodes injected across remounts
+            const paginationStyles = document.head.querySelectorAll(
+              "style[data-rm-pagination-style]",
+            );
+            if (paginationStyles.length > 1) {
+              for (let i = 0; i < paginationStyles.length - 1; i++) {
+                paginationStyles[i].remove();
+              }
+            }
+            const breaks =
+              view.dom.querySelectorAll<HTMLElement>("[data-page-break]");
+            if (!breaks.length) {
+              view.dom.dataset.layoutMs = "0";
+              return;
+            }
             const start = performance.now();
             const options = editor.storage.PaginationPlus;
             const rect = view.dom.getBoundingClientRect();
             const scale = rect.width / view.dom.offsetWidth || 1;
             const pitch = options.pageHeight + options.pageGap;
             let changed = false;
-            for (const element of view.dom.querySelectorAll<HTMLElement>(
-              "[data-page-break]",
-            )) {
+            for (const element of breaks) {
               const top =
                 (element.getBoundingClientRect().top - rect.top) / scale;
               const next =

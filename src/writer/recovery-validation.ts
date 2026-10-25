@@ -6,13 +6,49 @@ const keys = (value: Record<string, unknown>, allowed: string[]) =>
   Object.keys(value).every((key) => allowed.includes(key));
 const allowedChildren: Record<string, string[]> = {
   root: ["doc"],
-  doc: ["paragraph", "heading", "bulletList", "orderedList", "pageBreak"],
+  doc: [
+    "paragraph",
+    "heading",
+    "bulletList",
+    "orderedList",
+    "pageBreak",
+    "horizontalRule",
+    "table",
+    "image",
+  ],
   paragraph: ["text", "hardBreak"],
   heading: ["text", "hardBreak"],
   bulletList: ["listItem"],
   orderedList: ["listItem"],
-  listItem: ["paragraph", "heading", "bulletList", "orderedList", "pageBreak"],
+  listItem: [
+    "paragraph",
+    "heading",
+    "bulletList",
+    "orderedList",
+    "pageBreak",
+    "horizontalRule",
+  ],
+  table: ["tableRow"],
+  tableRow: ["tableHeader", "tableCell"],
+  tableHeader: [
+    "paragraph",
+    "heading",
+    "bulletList",
+    "orderedList",
+    "horizontalRule",
+    "image",
+  ],
+  tableCell: [
+    "paragraph",
+    "heading",
+    "bulletList",
+    "orderedList",
+    "horizontalRule",
+    "image",
+  ],
 };
+const ASSET_ID_RE = /^[a-f0-9]{24}$/i;
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 /** Validate untrusted local data before Tiptap sees it. Limits bound validation work;
  * a larger-than-server-limit draft may still be recovered and shortened by its owner. */
 export function validRecovery(
@@ -81,8 +117,24 @@ export function validRecovery(
       if (n.content !== undefined && !Array.isArray(n.content)) return false;
       const children = (n.content ?? []) as unknown[];
       if (
-        ["doc", "listItem", "bulletList", "orderedList"].includes(n.type) &&
+        [
+          "doc",
+          "listItem",
+          "bulletList",
+          "orderedList",
+          "table",
+          "tableRow",
+          "tableHeader",
+          "tableCell",
+        ].includes(n.type) &&
         !children.length
+      )
+        return false;
+      if (
+        ["pageBreak", "horizontalRule", "image", "hardBreak"].includes(
+          n.type,
+        ) &&
+        children.length > 0
       )
         return false;
       if (
@@ -90,12 +142,17 @@ export function validRecovery(
         (!object(children[0]) || children[0].type !== "paragraph")
       )
         return false;
+      if (n.type === "table" && children.length > 200) return false;
+      if (n.type === "tableRow" && children.length > 20) return false;
       const attrs = n.attrs ?? {};
       if (!object(attrs)) return false;
       const nodeAttrs: Record<string, string[]> = {
         heading: ["level", "textAlign"],
         paragraph: ["textAlign"],
         orderedList: ["start", "type"],
+        image: ["assetId", "alt", "width", "align"],
+        tableHeader: ["colspan", "rowspan", "colwidth"],
+        tableCell: ["colspan", "rowspan", "colwidth"],
       };
       if (!keys(attrs, nodeAttrs[n.type] ?? [])) return false;
       if (
@@ -122,6 +179,60 @@ export function validRecovery(
         !["1", "a", "A", "i", "I"].includes(String(attrs.type))
       )
         return false;
+      if (n.type === "image") {
+        if (
+          typeof attrs.assetId !== "string" ||
+          !ASSET_ID_RE.test(attrs.assetId)
+        )
+          return false;
+        if (
+          attrs.alt != null &&
+          (typeof attrs.alt !== "string" || attrs.alt.length > 256)
+        )
+          return false;
+        if (
+          attrs.width != null &&
+          (typeof attrs.width !== "number" ||
+            !Number.isFinite(attrs.width) ||
+            attrs.width < 40 ||
+            attrs.width > 1200)
+        )
+          return false;
+        if (
+          attrs.align != null &&
+          !["left", "center", "right"].includes(String(attrs.align))
+        )
+          return false;
+      }
+      if (n.type === "tableHeader" || n.type === "tableCell") {
+        if (
+          attrs.colspan != null &&
+          (!Number.isInteger(attrs.colspan) ||
+            Number(attrs.colspan) < 1 ||
+            Number(attrs.colspan) > 20)
+        )
+          return false;
+        if (
+          attrs.rowspan != null &&
+          (!Number.isInteger(attrs.rowspan) ||
+            Number(attrs.rowspan) < 1 ||
+            Number(attrs.rowspan) > 100)
+        )
+          return false;
+        if (
+          attrs.colwidth != null &&
+          (!Array.isArray(attrs.colwidth) ||
+            attrs.colwidth.length > 20 ||
+            !attrs.colwidth.every(
+              (w) =>
+                typeof w === "number" &&
+                Number.isFinite(w) &&
+                w >= 20 &&
+                w <= 2000,
+            ))
+        )
+          return false;
+      }
       if (
         n.marks !== undefined &&
         (!Array.isArray(n.marks) ||
@@ -172,14 +283,26 @@ export function validRecovery(
           )
             return false;
         } else if (mark.type === "textStyle") {
+          const colorStr = typeof a.color === "string" ? a.color : "";
+          const validColor =
+            a.color == null ||
+            a.color === "" ||
+            (typeof a.color === "string" &&
+              (spec.textColors
+                ? spec.textColors.some(
+                    ({ value: c }) =>
+                      c.toLowerCase() === colorStr.toLowerCase(),
+                  )
+                : HEX_COLOR_RE.test(colorStr)));
           if (
-            !keys(a, ["fontFamily", "fontSize"]) ||
+            !keys(a, ["fontFamily", "fontSize", "color"]) ||
             (a.fontFamily != null &&
               a.fontFamily !== "" &&
               !spec.fontFamilies.includes(String(a.fontFamily))) ||
             (a.fontSize != null &&
               a.fontSize !== "" &&
-              !spec.fontSizes.some((size) => `${size}pt` === a.fontSize))
+              !spec.fontSizes.some((size) => `${size}pt` === a.fontSize)) ||
+            !validColor
           )
             return false;
         } else if (Object.keys(a).length) return false;

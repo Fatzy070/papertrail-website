@@ -1,6 +1,8 @@
 import type { JSONContent } from "@tiptap/react";
 import { apiRequest, apiFetchRaw, ApiError } from "../api/client";
 
+export type WriterExportFormat = "pdf" | "docx" | "html" | "txt";
+
 export interface PageSettings {
   size: "A4" | "Letter";
   orientation: "portrait" | "landscape";
@@ -50,9 +52,22 @@ export interface WriterSpec {
   pageSizes: Record<string, [number, number]>;
   fontFamilies: string[];
   fontSizes: number[];
+  textColors?: { name: string; value: string }[];
   highlightColors: { name: string; value: string }[];
   css: string;
 }
+export interface WriterAssetMetadata {
+  assetId: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+  originalName: string;
+  size: number;
+  width: number;
+  height: number;
+}
+
+const assetUrlCache = new Map<string, Promise<string>>();
+const resolvedObjectUrls = new Map<string, string>();
+
 export const writerApi = {
   spec: () => apiRequest<WriterSpec>("/writer/spec"),
   list: (params: WriterListParams = {}) => {
@@ -97,10 +112,57 @@ export const writerApi = {
     apiRequest<WriterMetadata>(`/writer/${id}/restore`, {
       method: "POST",
     }),
-  export: async (id: string, revision: number) => {
+  uploadAsset: (documentId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiRequest<WriterAssetMetadata>(`/writer/${documentId}/assets`, {
+      method: "POST",
+      body: formData,
+    });
+  },
+  fetchAssetObjectUrl: (documentId: string, assetId: string): Promise<string> => {
+    const cacheKey = `${documentId}:${assetId}`;
+    const existing = assetUrlCache.get(cacheKey);
+    if (existing) return existing;
+    const promise = (async () => {
+      try {
+        const response = await apiFetchRaw(
+          `/writer/${documentId}/assets/${assetId}`,
+        );
+        if (!response.ok) {
+          throw new ApiError(response.status, "Unable to load image asset.");
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        resolvedObjectUrls.set(cacheKey, url);
+        return url;
+      } catch (err) {
+        assetUrlCache.delete(cacheKey);
+        throw err;
+      }
+    })();
+    assetUrlCache.set(cacheKey, promise);
+    return promise;
+  },
+  invalidateAssetUrl: (documentId: string, assetId: string) => {
+    const cacheKey = `${documentId}:${assetId}`;
+    const url = resolvedObjectUrls.get(cacheKey);
+    if (url) {
+      URL.revokeObjectURL(url);
+      resolvedObjectUrls.delete(cacheKey);
+    }
+    assetUrlCache.delete(cacheKey);
+  },
+  export: async (
+    id: string,
+    revision: number,
+    format: WriterExportFormat = "pdf",
+  ) => {
     const response = await apiFetchRaw(`/writer/${id}/export`, {
       method: "POST",
-      body: JSON.stringify({ revision }),
+      body: JSON.stringify(
+        format === "pdf" ? { revision } : { revision, format },
+      ),
     });
     if (!response.ok) {
       const error = (await response.json().catch(() => null)) as {
@@ -108,7 +170,7 @@ export const writerApi = {
       } | null;
       throw new ApiError(
         response.status,
-        error?.message || "Unable to prepare PDF. Please retry.",
+        error?.message || `Unable to prepare ${format.toUpperCase()}. Please retry.`,
       );
     }
     return response.blob();
