@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { Dialog } from '../components/ui/Dialog'
 import { DocumentActions } from '../components/DocumentActions'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { documentsApi, type DocumentMetadata } from '../api/documents.api'
 import {
   useDeleteDocument,
@@ -19,6 +19,7 @@ import {
   useUploadDocument,
 } from '../hooks/use-documents'
 import { useToastStore } from '../store/toast-store'
+import { WriterDashboard } from '../writer/WriterDashboard'
 
 const maxBytes = 50 * 1024 * 1024
 const formatSize = (bytes: number) =>
@@ -27,6 +28,8 @@ const formatSize = (bytes: number) =>
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
 export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 'starred' | 'trash' }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const docType = searchParams.get('type') === 'writer' ? 'writer' : 'pdf'
   const documents = useDocuments(filter)
   const upload = useUploadDocument()
   const rename = useRenameDocument()
@@ -120,21 +123,21 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
       case 'recent': return { title: 'Recent', description: 'Recently opened documents will appear here.', emptyTitle: 'No recent documents', emptyDesc: 'Open a document to see it here.' }
       case 'starred': return { title: 'Starred', description: 'Star important documents to find them quickly.', emptyTitle: 'No starred documents', emptyDesc: 'Click the star icon on any document to add it here.' }
       case 'trash': return { title: 'Trash', description: 'Deleted documents will appear here.', emptyTitle: 'Trash is empty', emptyDesc: 'Items in trash can be restored or permanently deleted.' }
-      default: return { title: 'My documents', description: 'A place for your PDFs. Ready for your next edit.', emptyTitle: 'Your next edit starts here', emptyDesc: 'Upload your first PDF to start making it your own.' }
+      default: return { title: 'My documents', description: 'A place for your PDFs and created documents.', emptyTitle: 'Your next edit starts here', emptyDesc: 'Upload your first PDF to start making it your own.' }
     }
   }, [filter])
 
   return (
     <>
       <div className="workspace-content documents-page">
-          <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] mb-1">{pageInfo.title}</h1>
               <p className="text-[var(--muted)] text-sm">
                 {pageInfo.description}
               </p>
             </div>
-            {filter === 'all' && (
+            {docType === 'pdf' && filter === 'all' && (
               <button
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm font-medium rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                 disabled={upload.isPending}
@@ -145,7 +148,48 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
               </button>
             )}
           </header>
-          
+
+          <div
+            className="writer-doctype-switcher"
+            role="tablist"
+            aria-label="Document type"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={docType === 'pdf'}
+              className={docType === 'pdf' ? 'writer-doctype-tab active' : 'writer-doctype-tab'}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.delete('type')
+                setSearchParams(next)
+              }}
+            >
+              PDF documents
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={docType === 'writer'}
+              className={docType === 'writer' ? 'writer-doctype-tab active' : 'writer-doctype-tab'}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.set('type', 'writer')
+                setSearchParams(next)
+              }}
+            >
+              Created documents
+            </button>
+          </div>
+
+          {docType === 'writer' ? (
+            <WriterDashboard
+              key={filter === 'trash' ? 'trash' : 'active'}
+              embedded
+              initialStatus={filter === 'trash' ? 'trash' : 'active'}
+            />
+          ) : (
+            <>
           <nav className="document-views" aria-label="Document views">{[{to:'/documents',label:'All documents'},{to:'/recent',label:'Recent'},{to:'/starred',label:'Starred'},{to:'/trash',label:'Trash'}].map(view=><NavLink key={view.to} to={view.to}>{view.label}</NavLink>)}</nav>
           {filter === 'all' && (
             <div
@@ -288,6 +332,8 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
                 </table>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
 

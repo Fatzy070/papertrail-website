@@ -15,6 +15,15 @@ function getMeasurementContext(): CanvasRenderingContext2D {
   return measurementContext
 }
 
+/** CSS line-box baseline, using the same browser font as the source overlay. */
+export function measureTextBaseline(fontSize: number, fontId: FontId, bold: boolean, italic: boolean, lineHeight: number): number {
+  const ctx = getMeasurementContext()
+  ctx.font = `${italic ? 'italic' : 'normal'} ${bold ? 'bold' : 'normal'} ${fontSize}px ${getCssFontFamily(fontId)}`
+  const metrics = ctx.measureText('Mg')
+  return metrics.fontBoundingBoxAscent +
+    (fontSize * lineHeight - metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2
+}
+
 /**
  * Measure the rendered width of text using the canvas 2D API.
  *

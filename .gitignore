@@ -27,3 +27,6 @@ dist-ssr
 .env.development
 .env.production
 .env.*.local
+
+# Scripts and temporary test directories
+scripts/

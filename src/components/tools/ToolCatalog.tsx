@@ -15,7 +15,7 @@ const tools: Array<{ title: string; description: string; group: Group; icon: typ
   {title:'Images → PDF',description:'Arrange JPG or PNG images into a document.',group:'Convert',icon:FileImage,to:'/tools/convert',note:'Select Images to PDF'},
 ]
 
-export function ToolCatalog() {
+export function ToolCatalog({ paperMotion = false }: { paperMotion?: boolean }) {
   const [group,setGroup]=useState<Group>('All tools')
-  return <div className="tool-catalog"><div className="catalog-filters" aria-label="Tool categories">{groups.map(item=><button type="button" key={item} aria-pressed={group===item} className={group===item?'active':''} onClick={()=>setGroup(item)}>{item}</button>)}</div><div className="catalog-grid">{tools.filter(tool=>group==='All tools'||tool.group===group).map(({icon:Icon,...tool})=><Link className="catalog-card" key={tool.title} to={tool.to}><span className="catalog-icon"><Icon size={23}/></span><ArrowUpRight size={16} className="catalog-arrow"/><h3>{tool.title}</h3><p>{tool.description}</p>{tool.note && <small>{tool.note}</small>}</Link>)}</div></div>
+  return <div className="tool-catalog"><div className="catalog-filters" aria-label="Tool categories">{groups.map(item=><button type="button" key={item} aria-pressed={group===item} className={group===item?'active':''} onClick={()=>setGroup(item)}>{item}</button>)}</div><div className="catalog-grid">{tools.filter(tool=>group==='All tools'||tool.group===group).map(({icon:Icon,...tool})=><Link className="catalog-card" key={tool.title} to={tool.to}><span className="catalog-icon"><Icon size={23}/>{paperMotion && tool.group === 'Organize' && <span aria-hidden="true" className={`tool-paper-motion ${tool.to.split('/').pop()}`}><i /><i /></span>}</span><ArrowUpRight size={16} className="catalog-arrow"/><h3>{tool.title}</h3><p>{tool.description}</p>{tool.note && <small>{tool.note}</small>}</Link>)}</div></div>
 }

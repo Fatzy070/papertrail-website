@@ -1,0 +1,10 @@
+.app-dialog:has(.writer-link-form) { width: min(420px, calc(100vw - 24px)); padding: 24px; }
+.writer-link-form { display: grid; gap: 10px; margin-top: 20px; }
+.writer-link-form label { font-size: 13px; font-weight: 600; }
+.writer-link-form input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+.writer-link-form p { margin: 0; color: var(--muted); font-size: 12px; }
+.writer-link-form [role="alert"] { color: var(--text); }
+.writer-link-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.writer-link-actions button { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.writer-link-actions button:not(.primary-button) { background: var(--surface); color: var(--text); }
+.writer-link-form :is(input, button):focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }

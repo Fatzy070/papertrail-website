@@ -209,6 +209,9 @@ export function resolveFontIdFromSource(
     isSerif?: boolean
   }
 ): FontId {
+  // Chromium's subset Arimo can carry a serif flag despite being Arial-
+  // compatible. Trust this known family before the PDF descriptor heuristic.
+  if (sourceStyle.normalizedFontName && /^Arimo(?:-|$)/i.test(sourceStyle.normalizedFontName)) return 'helvetica'
   if (sourceStyle.normalizedFontName) {
     const id = resolveFontId(sourceStyle.normalizedFontName)
     // resolveFontId returned helvetica as the default — check if the name

@@ -1,10 +1,14 @@
+import { authToken } from '../api/auth-token'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authApi } from '../api/auth.api'
 
 export const authKeys = { current: ['auth', 'current-user'] as const }
 
 export function useCurrentUser() {
-  return useQuery({ queryKey: authKeys.current, queryFn: authApi.me, retry: false, staleTime: 60_000 })
+  const query = useQuery({ queryKey: authKeys.current, queryFn: authApi.me, retry: false, staleTime: 60_000 })
+  // Never seed query.data with an unverified user: route guards rely on it.
+  const hasAuthHint = query.data !== undefined ? Boolean(query.data) : Boolean(authToken.read())
+  return { ...query, hasAuthHint }
 }
 
 export function useLogin() {

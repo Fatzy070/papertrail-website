@@ -2,11 +2,12 @@ import { useState, useRef, useCallback, type PointerEvent } from 'react'
 import type { TextElement } from '../../types/editor'
 import { pageRectToCss } from '../../engine/coordinate-transformer'
 import { useEditorStore } from '../../store/editor-store'
-import { measureTextElement, measureTextHeight } from '../../engine/text-measurement'
+import { measureTextElement, measureTextHeight, measureTextBaseline } from '../../engine/text-measurement'
 import { resolveElementFontId, resolveElementBold, resolveElementItalic, resolveElementColor, getCssFontFamily } from '../../engine/font-registry'
 import type { EditorPage } from '../../types/editor'
 import { useSearchStore } from '../../store/search-store'
 import { useSearchResults } from '../../hooks/use-search-results'
+import { sourceNumberEdit } from '../../engine/source-number-edit'
 
 interface Props {
   element: TextElement
@@ -47,6 +48,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   const effectiveBold = resolveElementBold(element)
   const effectiveItalic = resolveElementItalic(element)
   const effectiveColor = resolveElementColor(element)
+  const numberEdit = isPdfText ? sourceNumberEdit(element) : null
 
   // Interaction rules:
   //  - PDF text: interactive only in edit-text mode
@@ -122,7 +124,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         effectiveItalic,
         fontId,
       )
-      newWidth = Math.min(Math.max(newWidth, measured, 60), maxWidth)
+      newWidth = Math.min(Math.max(newWidth, measured, isPdfText ? 0 : 60), maxWidth)
     }
 
     // Height: always driven by content
@@ -240,7 +242,13 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
   }
 
   // ── Shared textarea / span styles ────────────────────────────────────────
+  const baselineOffset = isPdfText && (element.edited || isEditable) && element.sourceStyle && element.rotation === 0
+    ? element.sourceStyle.baselineY - element.y - measureTextBaseline(
+      element.fontSize, fontId, effectiveBold, effectiveItalic, element.lineHeight ?? 1.2,
+    ) : 0
   const textStyle: React.CSSProperties = {
+    position: 'relative',
+    top: baselineOffset * zoom,
     fontSize: element.fontSize * zoom,
     fontFamily: cssFontFamily,
     fontWeight: effectiveBold ? 'bold' : 'normal',
@@ -276,7 +284,7 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         position: 'absolute',
         left: rect.left,
         top: rect.top,
-        width: Math.max(rect.width, 24),
+        width: isPdfText ? rect.width : Math.max(rect.width, 24),
         minHeight: rect.height,
         transform: `rotate(${rect.rotation}deg)`,
         transformOrigin: 'top left',
@@ -304,6 +312,26 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
         if (e.key === 'Enter') { onSelect(element.id); setIsEditing(true) }
       }}
     >
+      {isPdfText && !numberEdit && (element.edited || isEditable) && (
+        <span aria-hidden="true" style={{
+          position: 'absolute',
+          left: ((element.originalBounds?.x ?? element.x) - element.x) * zoom,
+          top: ((element.originalBounds?.y ?? element.y) - element.y) * zoom,
+          width: (element.originalBounds?.width ?? element.width) * zoom,
+          height: (element.originalBounds?.height ?? element.height) * zoom,
+          background: '#fff',
+          pointerEvents: 'none',
+        }} />
+      )}
+      {numberEdit && (
+        <svg aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
+          {numberEdit.rects.map((r, i) => <rect key={i}
+            x={(r[0] - element.x) * zoom} y={(r[1] - element.y) * zoom}
+            width={(r[2] - r[0]) * zoom} height={(r[3] - r[1]) * zoom} fill="#fff" />)}
+          {numberEdit.glyphs.map((g, i) => <path key={i} d={g.path} fill={effectiveColor}
+            transform={`translate(${(g.x - element.x) * zoom} ${(g.y - element.y) * zoom}) scale(${g.scale * zoom} ${-g.scale * zoom})`} />)}
+        </svg>
+      )}
       {isEditable ? (
         <textarea
           data-editor-input="true"
@@ -335,9 +363,10 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
           wrap="soft"
           style={{
             ...textStyle,
+            ...(numberEdit ? { color: 'transparent', caretColor: effectiveColor } : {}),
             width: '100%',
             height: '100%',
-            background: isPdfText ? 'rgba(255, 255, 255, 0.92)' : 'transparent',
+            background: 'transparent',
             border: 0,
             outline: 0,
             resize: 'none',
@@ -359,10 +388,10 @@ export function TextOverlay({ element, zoom, onSelect }: Props) {
             ...textStyle,
             // For unedited PDF text, render transparent to not double-paint
             color:
-              element.edited || element.source === 'user' || element.link
+              !numberEdit && (element.edited || element.source === 'user' || element.link)
                 ? textStyle.color
                 : 'transparent',
-            background: element.edited ? 'rgba(255, 255, 255, 0.92)' : 'transparent',
+            background: element.edited && !isPdfText ? 'rgba(255, 255, 255, 0.92)' : 'transparent',
           }}
         >
           {element.text || (isUserText ? <span style={{ color: 'var(--muted, #667085)', opacity: 0.6 }}>Type here…</span> : null)}

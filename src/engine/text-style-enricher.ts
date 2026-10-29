@@ -13,9 +13,10 @@
  * This module is engine-layer only. No React imports or store access.
  */
 
-import * as mupdf from 'mupdf'
+import type * as mupdf from 'mupdf'
 import { normalizePdfFontName } from './font-registry'
 import type { TextElement, EditorPage } from '../types/editor'
+import { registerSourceNumbers } from './source-number-edit'
 
 // ─── Internal types ──────────────────────────────────────────────────────────
 
@@ -81,10 +82,11 @@ function mupdfColorToHex(color: number[]): string {
  * Walk MuPDF StructuredText for all pages and collect per-character span
  * data, grouping consecutive characters that share the same font.
  */
-export function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): MuPdfSpan[] {
+export async function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): Promise<MuPdfSpan[]> {
   const spans: MuPdfSpan[] = []
 
   try {
+    const mupdf = await import('mupdf')
     const baseDoc = mupdf.Document.openDocument(pdfBytes, 'application/pdf')
     const doc = baseDoc.asPDF()
     if (!doc) return spans
@@ -263,7 +265,7 @@ export async function enrichTextElementsWithMuPDF(
 ): Promise<TextElement[]> {
   let spans: MuPdfSpan[]
   try {
-    spans = extractMuPdfSpans(pdfBytes)
+    spans = await extractMuPdfSpans(pdfBytes)
   } catch (err) {
     console.warn('[text-style-enricher] MuPDF span extraction failed — skipping enrichment:', err)
     return elements
@@ -366,5 +368,8 @@ export async function enrichTextElementsWithMuPDF(
     }
   }
 
+  try { await registerSourceNumbers(elements, pdfBytes, pages) } catch (error) {
+    console.warn('[text-style-enricher] Source number font unavailable:', error)
+  }
   return elements
 }

@@ -1,3 +1,4 @@
+import { authToken } from './auth-token'
 //client.ts
 
 export const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
@@ -13,7 +14,7 @@ export class ApiError extends Error {
 }
 
 export async function apiFetchRaw(path: string, init: RequestInit = {}): Promise<Response> {
-  const token = localStorage.getItem('auth_token');
+  const token = authToken.read();
   const headers = new Headers(init.headers);
   
   if (!(init.body instanceof FormData)) {

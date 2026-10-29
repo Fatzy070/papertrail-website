@@ -1,4 +1,5 @@
-import * as mupdf from 'mupdf'
+import type * as mupdf from 'mupdf'
+import { sourceGlyphRect, type SourceTextTarget } from './source-glyph-geometry'
 
 type RedactionCapablePage = mupdf.PDFPage & {
   applyRedactions: (blackBoxes: boolean, imageMethod: number, lineArtMethod: number, textMethod: number) => void
@@ -8,6 +9,7 @@ export interface PendingRedaction {
   id: string
   pageId: string
   sourcePageIndex: number
+  sourceText?: SourceTextTarget
   rect: {
     x: number
     y: number
@@ -38,6 +40,7 @@ export async function applyMuPdfRedactions(
   }
 
   try {
+    const mupdf = await import('mupdf')
     const baseDoc = mupdf.Document.openDocument(sourceBytes, 'application/pdf')
     const doc = baseDoc.asPDF()
     if (!doc) {
@@ -58,7 +61,7 @@ export async function applyMuPdfRedactions(
           const y1 = r.rect.y + r.rect.height
           
           const annot = page.createAnnotation('Redact')
-          annot.setRect([x0, y0, x1, y1])
+          annot.setRect(r.sourceText ? sourceGlyphRect(page, r.sourceText) : [x0, y0, x1, y1])
         }
         
         // MuPDF exposes this method at runtime but omits it from the current package typings.
