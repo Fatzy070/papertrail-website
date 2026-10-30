@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   AlertCircle,
@@ -45,22 +45,45 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function ExperimentalNotice({
+  title,
+  message,
+}: {
+  title: string
+  message: string
+}) {
+  return (
+    <div
+      className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 mb-6 flex items-start gap-3.5 text-left text-sm shadow-xs"
+      role="status"
+      aria-label={`${title} experimental notice`}
+    >
+      <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 shrink-0 mt-0.5">
+        <AlertCircle size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="text-[11px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+            Experimental
+          </span>
+          <span className="text-xs font-semibold text-amber-950 dark:text-amber-100">
+            {title}
+          </span>
+        </div>
+        <p className="text-xs text-amber-900/90 dark:text-amber-200/80 leading-relaxed">
+          {message}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function ConvertPdfPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialMode = searchParams.get('mode') as ConvertMode
-  const [mode, setMode] = useState<ConvertMode>(
-    VALID_MODES.includes(initialMode) ? initialMode : 'pdf-to-docx'
-  )
-
-  useEffect(() => {
-    const urlMode = searchParams.get('mode') as ConvertMode
-    if (urlMode && VALID_MODES.includes(urlMode) && urlMode !== mode) {
-      setMode(urlMode)
-    }
-  }, [searchParams, mode])
+  const modeParam = searchParams.get('mode') as ConvertMode
+  const mode: ConvertMode = VALID_MODES.includes(modeParam) ? modeParam : 'pdf-to-docx'
 
   const selectMode = (newMode: ConvertMode) => {
-    setMode(newMode)
     setSearchParams({ mode: newMode }, { replace: true })
     if (newMode === 'pdf-to-docx') setDocxResult(null)
     if (newMode === 'docx-to-pdf') setPdfConversionResult(null)
@@ -365,7 +388,12 @@ export function ConvertPdfPage() {
         >
           <FileType size={25} />
           <span>
-            <small>FROM PDF</small>
+            <span className="inline-flex items-center gap-1.5 mb-1">
+              <small className="m-0 leading-none">FROM PDF</small>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 leading-none">
+                Beta
+              </span>
+            </span>
             <strong>PDF to Word</strong>
             <p>Editable DOCX preserving text and tables.</p>
           </span>
@@ -379,7 +407,12 @@ export function ConvertPdfPage() {
         >
           <FileText size={25} />
           <span>
-            <small>TO PDF</small>
+            <span className="inline-flex items-center gap-1.5 mb-1">
+              <small className="m-0 leading-none">TO PDF</small>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 leading-none">
+                Beta
+              </span>
+            </span>
             <strong>Word to PDF</strong>
             <p>Word document to vector PDF via LibreOffice.</p>
           </span>
@@ -420,6 +453,11 @@ export function ConvertPdfPage() {
          ======================================================== */}
       {mode === 'pdf-to-docx' && (
         <>
+          <ExperimentalNotice
+            title="PDF → Word"
+            message="Experimental — PDF-to-Word conversion is still being tested. Complex layouts, tables, fonts, and formatting may require manual adjustments. Please review the converted document."
+          />
+
           {!pdfToDocxFile && (
             <div
               {...pdfToDocxDropzone.getRootProps()}
@@ -519,6 +557,11 @@ export function ConvertPdfPage() {
          ======================================================== */}
       {mode === 'docx-to-pdf' && (
         <>
+          <ExperimentalNotice
+            title="Word → PDF"
+            message="Experimental — This conversion feature is still being tested. Formatting, fonts, and page layouts may not always be preserved perfectly. Please review the converted document."
+          />
+
           {!docxToPdfFile && (
             <div
               {...docxToPdfDropzone.getRootProps()}

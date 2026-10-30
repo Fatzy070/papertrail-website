@@ -23,8 +23,8 @@ const tools: Array<{ title: string; description: string; group: Group; icon: typ
   {title:'Merge PDF',description:'Bring separate PDFs together in the right order.',group:'Organize',icon:Combine,to:'/tools/merge'},
   {title:'Split & extract',description:'Split a PDF or keep just the pages you need.',group:'Organize',icon:Scissors,to:'/tools/split'},
   {title:'Compress PDF',description:'Prepare a smaller PDF for its next destination.',group:'Organize',icon:Minimize2,to:'/tools/compress'},
-  {title:'PDF → Word',description:'Convert PDF into an editable Microsoft Word (.docx) document.',group:'Convert',icon:FileType,to:'/tools/convert?mode=pdf-to-docx',note:'Reconstruct editable DOCX'},
-  {title:'Word → PDF',description:'Convert Word (.docx) files into clean, vector PDFs.',group:'Convert',icon:FileText,to:'/tools/convert?mode=docx-to-pdf',note:'LibreOffice engine'},
+  {title:'PDF → Word',description:'Convert PDF into an editable Microsoft Word (.docx) document.',group:'Convert',icon:FileType,to:'/tools/convert?mode=pdf-to-docx',note:'Beta • Reconstruct editable DOCX'},
+  {title:'Word → PDF',description:'Convert Word (.docx) files into clean, vector PDFs.',group:'Convert',icon:FileText,to:'/tools/convert?mode=docx-to-pdf',note:'Beta • LibreOffice engine'},
   {title:'PDF → Images',description:'Export PDF pages as PNG images.',group:'Convert',icon:Image,to:'/tools/convert?mode=pdf-to-images',note:'Select PDF to Images'},
   {title:'Images → PDF',description:'Arrange JPG or PNG images into a document.',group:'Convert',icon:FileImage,to:'/tools/convert?mode=images-to-pdf',note:'Select Images to PDF'},
 ]
