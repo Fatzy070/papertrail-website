@@ -1,5 +1,17 @@
 import { useState } from 'react'
-import { ArrowUpRight, Type, PenLine, Stamp, Combine, Scissors, Minimize2, Image, FileImage } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Type,
+  PenLine,
+  Stamp,
+  Combine,
+  Scissors,
+  Minimize2,
+  Image,
+  FileImage,
+  FileType,
+  FileText,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const groups = ['All tools', 'Edit & sign', 'Organize', 'Convert'] as const
@@ -11,8 +23,10 @@ const tools: Array<{ title: string; description: string; group: Group; icon: typ
   {title:'Merge PDF',description:'Bring separate PDFs together in the right order.',group:'Organize',icon:Combine,to:'/tools/merge'},
   {title:'Split & extract',description:'Split a PDF or keep just the pages you need.',group:'Organize',icon:Scissors,to:'/tools/split'},
   {title:'Compress PDF',description:'Prepare a smaller PDF for its next destination.',group:'Organize',icon:Minimize2,to:'/tools/compress'},
-  {title:'PDF → Images',description:'Export PDF pages as PNG images.',group:'Convert',icon:Image,to:'/tools/convert',note:'Select PDF to Images'},
-  {title:'Images → PDF',description:'Arrange JPG or PNG images into a document.',group:'Convert',icon:FileImage,to:'/tools/convert',note:'Select Images to PDF'},
+  {title:'PDF → Word',description:'Convert PDF into an editable Microsoft Word (.docx) document.',group:'Convert',icon:FileType,to:'/tools/convert?mode=pdf-to-docx',note:'Reconstruct editable DOCX'},
+  {title:'Word → PDF',description:'Convert Word (.docx) files into clean, vector PDFs.',group:'Convert',icon:FileText,to:'/tools/convert?mode=docx-to-pdf',note:'LibreOffice engine'},
+  {title:'PDF → Images',description:'Export PDF pages as PNG images.',group:'Convert',icon:Image,to:'/tools/convert?mode=pdf-to-images',note:'Select PDF to Images'},
+  {title:'Images → PDF',description:'Arrange JPG or PNG images into a document.',group:'Convert',icon:FileImage,to:'/tools/convert?mode=images-to-pdf',note:'Select Images to PDF'},
 ]
 
 export function ToolCatalog({ paperMotion = false }: { paperMotion?: boolean }) {

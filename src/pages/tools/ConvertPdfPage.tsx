@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   AlertCircle,
@@ -16,7 +16,7 @@ import {
   UploadCloud,
 } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useToastStore } from '../../store/toast-store'
 import { useUploadDocument } from '../../hooks/use-documents'
 import { loadPdfDocument } from '../../engine/pdf-loader'
@@ -26,6 +26,7 @@ const maxConversionBytes = 25 * 1024 * 1024 // 25 MB limit for server conversion
 const maxClientBytes = 50 * 1024 * 1024 // 50 MB for client-side image processing
 
 type ConvertMode = 'pdf-to-docx' | 'docx-to-pdf' | 'pdf-to-images' | 'images-to-pdf'
+const VALID_MODES: ConvertMode[] = ['pdf-to-docx', 'docx-to-pdf', 'pdf-to-images', 'images-to-pdf']
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -45,7 +46,27 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 
 export function ConvertPdfPage() {
-  const [mode, setMode] = useState<ConvertMode>('pdf-to-docx')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialMode = searchParams.get('mode') as ConvertMode
+  const [mode, setMode] = useState<ConvertMode>(
+    VALID_MODES.includes(initialMode) ? initialMode : 'pdf-to-docx'
+  )
+
+  useEffect(() => {
+    const urlMode = searchParams.get('mode') as ConvertMode
+    if (urlMode && VALID_MODES.includes(urlMode) && urlMode !== mode) {
+      setMode(urlMode)
+    }
+  }, [searchParams, mode])
+
+  const selectMode = (newMode: ConvertMode) => {
+    setMode(newMode)
+    setSearchParams({ mode: newMode }, { replace: true })
+    if (newMode === 'pdf-to-docx') setDocxResult(null)
+    if (newMode === 'docx-to-pdf') setPdfConversionResult(null)
+    if (newMode === 'pdf-to-images') setExtractedImages([])
+    if (newMode === 'images-to-pdf') setPdfResult(null)
+  }
 
   // --- States for PDF -> DOCX ---
   const [pdfToDocxFile, setPdfToDocxFile] = useState<File | null>(null)
@@ -340,10 +361,7 @@ export function ConvertPdfPage() {
         <button
           className={mode === 'pdf-to-docx' ? 'conversion-choice active' : 'conversion-choice'}
           aria-pressed={mode === 'pdf-to-docx'}
-          onClick={() => {
-            setMode('pdf-to-docx')
-            setDocxResult(null)
-          }}
+          onClick={() => selectMode('pdf-to-docx')}
         >
           <FileType size={25} />
           <span>
@@ -357,10 +375,7 @@ export function ConvertPdfPage() {
         <button
           className={mode === 'docx-to-pdf' ? 'conversion-choice active' : 'conversion-choice'}
           aria-pressed={mode === 'docx-to-pdf'}
-          onClick={() => {
-            setMode('docx-to-pdf')
-            setPdfConversionResult(null)
-          }}
+          onClick={() => selectMode('docx-to-pdf')}
         >
           <FileText size={25} />
           <span>
@@ -374,10 +389,7 @@ export function ConvertPdfPage() {
         <button
           className={mode === 'pdf-to-images' ? 'conversion-choice active' : 'conversion-choice'}
           aria-pressed={mode === 'pdf-to-images'}
-          onClick={() => {
-            setMode('pdf-to-images')
-            setExtractedImages([])
-          }}
+          onClick={() => selectMode('pdf-to-images')}
         >
           <FileText size={25} />
           <span>
@@ -391,10 +403,7 @@ export function ConvertPdfPage() {
         <button
           className={mode === 'images-to-pdf' ? 'conversion-choice active' : 'conversion-choice'}
           aria-pressed={mode === 'images-to-pdf'}
-          onClick={() => {
-            setMode('images-to-pdf')
-            setPdfResult(null)
-          }}
+          onClick={() => selectMode('images-to-pdf')}
         >
           <ImageIcon size={25} />
           <span>
