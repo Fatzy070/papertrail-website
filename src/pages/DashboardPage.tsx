@@ -62,7 +62,7 @@ export function DashboardPage() {
             { to:'/tools/merge',icon:Combine,title:'Merge PDF',desc:'Bring your files together.' },
             { to:'/tools/split',icon:Scissors,title:'Split & extract',desc:'Just the pages you need.' },
             { to:'/tools/compress',icon:Minimize2,title:'Compress PDF',desc:'A lighter file for sharing.' },
-            { to:'/tools/convert',icon:RefreshCw,title:'Convert PDF',desc:'PDF to images. Images to PDF.' },
+            { to:'/tools/convert',icon:RefreshCw,title:'Convert PDF',desc:'PDF to Word, Word to PDF, & images.' },
           ].map(({icon:Icon,...tool}) => <Link className="workspace-tool" key={tool.to} to={tool.to}><Icon size={23} /><strong>{tool.title}</strong><p>{tool.desc}</p><ArrowUpRight size={16} /></Link>)}
         </div>
       </motion.section>

@@ -40,7 +40,10 @@ Built with [React](https://react.dev) 19, [Vite](https://vite.dev), [TypeScript]
 ### 3. PDF Utilities
 * **Merge & Split**: Combine multiple PDFs or extract selected page ranges.
 * **Compress**: Reduce PDF file size with variable quality presets.
-* **Convert**: Convert between PDF and image formats.
+* **Convert**: Full bidirectional document conversion suite:
+  * **DOCX → PDF**: High-fidelity server-side conversion via Gotenberg (LibreOffice).
+  * **PDF → DOCX**: Reconstructed editable Word document conversion powered by Python `pdf2docx`.
+  * **PDF ↔ Images**: Client-side PDF page extraction to JPEG/PNG and image compilation to PDF.
 * **OCR**: Client-side optical character recognition via [Tesseract.js](https://tesseract.projectnaptha.com/).
 
 ### 4. User Workspace & Documents
