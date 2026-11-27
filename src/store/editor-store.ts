@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { EditorSnapshot, EditorTool, PdfDocumentState, EditorElement, EditorPage, WatermarkConfig } from '../types/editor'
+import type { EditorSnapshot, EditorTool, PdfDocumentState, EditorElement, EditorPage, TextElement, WatermarkConfig } from '../types/editor'
 
 interface EditorStore {
   document: PdfDocumentState | null
@@ -15,6 +15,9 @@ interface EditorStore {
   
   setWatermark: (config: WatermarkConfig | undefined) => void
   setDocument: (document: PdfDocumentState, elements: EditorElement[]) => void
+  setDocumentName: (name: string) => void
+  hydrateBackgroundElements: (newElements: EditorElement[]) => void
+  applySourceStyles: (stylesById: Map<string, NonNullable<TextElement['sourceStyle']>>) => void
   setZoom: (zoom: number) => void
   setActiveTool: (tool: EditorTool) => void
   selectElement: (id: string | null) => void
@@ -88,6 +91,62 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       historyIndex: 0, 
       dirty: false, 
       selectedElementId: null 
+    }),
+
+    setDocumentName: (name) => set((state) => (
+      state.document && state.document.name !== name
+        ? { document: { ...state.document, name } }
+        : state
+    )),
+
+    hydrateBackgroundElements: (newElements) => set((state) => {
+      if (!state.document || newElements.length === 0) return state
+      const currentPageIds = new Set(state.document.pages.map((p) => p.id))
+      const existingIds = new Set(state.elements.map((e) => e.id))
+      const toAddCurrent = newElements.filter(
+        (el) => currentPageIds.has(el.pageId) && !existingIds.has(el.id),
+      )
+
+      const history = state.history.map((snapshot) => {
+        const snapPageIds = new Set(snapshot.pages.map((p) => p.id))
+        const snapExistingIds = new Set(snapshot.elements.map((e) => e.id))
+        const toAddSnap = newElements.filter(
+          (el) => snapPageIds.has(el.pageId) && !snapExistingIds.has(el.id),
+        )
+        return toAddSnap.length > 0
+          ? { ...snapshot, elements: [...snapshot.elements, ...toAddSnap] }
+          : snapshot
+      })
+
+      return {
+        elements: toAddCurrent.length > 0 ? [...state.elements, ...toAddCurrent] : state.elements,
+        history,
+      }
+    }),
+
+    applySourceStyles: (stylesById) => set((state) => {
+      if (!state.document || stylesById.size === 0) return state
+      const patchList = (list: EditorElement[]) => {
+        let changed = false
+        const next = list.map((el) => {
+          if (el.type === 'text' && el.source === 'pdf' && !el.edited && !el.deleted) {
+            const enriched = stylesById.get(el.id)
+            if (enriched) {
+              changed = true
+              return { ...el, sourceStyle: enriched }
+            }
+          }
+          return el
+        })
+        return changed ? next : list
+      }
+
+      const elements = patchList(state.elements)
+      const history = state.history.map((snapshot) => {
+        const nextEls = patchList(snapshot.elements)
+        return nextEls !== snapshot.elements ? { ...snapshot, elements: nextEls } : snapshot
+      })
+      return { elements, history }
     }),
     
     setZoom: (zoom) => set({ zoom: Math.min(2.5, Math.max(0.5, zoom)) }),
@@ -313,13 +372,21 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     deletePage: (pageIndex) => {
       const state = get()
       if (!state.document || state.document.pages.length <= 1) return
+      const targetPage = state.document.pages[pageIndex]
+      if (!targetPage) return
       
-      const deletedPageId = state.document.pages[pageIndex].id
+      const deletedPageId = targetPage.id
       const pages = state.document.pages.filter((_, i) => i !== pageIndex)
       
       const elements = state.elements.filter(el => el.pageId !== deletedPageId)
+      const selectedWasRemoved = Boolean(
+        state.selectedElementId && !elements.some(el => el.id === state.selectedElementId),
+      )
         
       commit(elements, pages)
+      if (selectedWasRemoved) {
+        set({ selectedElementId: null })
+      }
     },
 
     reorderPage: (fromIndex, toIndex) => {

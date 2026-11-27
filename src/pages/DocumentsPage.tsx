@@ -19,6 +19,7 @@ import {
   useUploadDocument,
 } from '../hooks/use-documents'
 import { useToastStore } from '../store/toast-store'
+import { preloadEditorResources } from '../engine/pdf-cache'
 import { WriterDashboard } from '../writer/WriterDashboard'
 
 const maxBytes = 50 * 1024 * 1024
@@ -289,6 +290,8 @@ export function DocumentsPage({ filter = 'all' }: { filter?: 'all' | 'recent' | 
                         <td className="px-5 py-3">
                           <button
                             className="flex items-center gap-3 text-[var(--text)] font-medium hover:text-[var(--primary)] transition-colors text-left truncate max-w-xs md:max-w-md lg:max-w-lg"
+                            onPointerEnter={preloadEditorResources}
+                            onFocus={preloadEditorResources}
                             onClick={() =>
                               navigate(`/documents/${document.id}/edit`)
                             }

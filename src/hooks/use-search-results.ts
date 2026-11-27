@@ -30,34 +30,38 @@ export function useSearchResults() {
     const normalizedQuery = normalizeText(query.trim())
     if (!normalizedQuery) return []
 
-    // 1. Get all eligible text elements
-    const searchableElements = elements.filter((el): el is TextElement => {
-      if (el.type !== 'text') return false
-      if (el.deleted) return false
-      // If it's a PDF text that is edited, el.text contains the edit.
-      // If it's user text, el.text contains the user text.
-      // If it's unedited PDF text, el.text contains the original text.
-      return !!el.text
+    // 1. Build O(1) lookup maps for page numbers and elements
+    const pageNumberById = new Map<string, number>()
+    document.pages.forEach((p, idx) => {
+      pageNumberById.set(p.id, idx + 1)
     })
+
+    const elementById = new Map<string, TextElement>()
+    const searchableElements: TextElement[] = []
+    for (const el of elements) {
+      if (el.type === 'text' && !el.deleted && el.text) {
+        searchableElements.push(el)
+        elementById.set(el.id, el)
+      }
+    }
 
     // 2. Find matches
     const results: SearchResult[] = []
 
     for (const el of searchableElements) {
       const normalizedElementText = normalizeText(el.text)
+      const pageNumber = pageNumberById.get(el.pageId) ?? 999
       let startIndex = 0
       
       while (startIndex < normalizedElementText.length) {
         const matchIndex = normalizedElementText.indexOf(normalizedQuery, startIndex)
         if (matchIndex === -1) break
-
-        const pageIndex = document.pages.findIndex(p => p.id === el.pageId)
         
         results.push({
           id: `${el.id}-${matchIndex}`,
           elementId: el.id,
           pageId: el.pageId,
-          pageNumber: pageIndex >= 0 ? pageIndex + 1 : 999, // 1-indexed
+          pageNumber, // 1-indexed
           startIndex: matchIndex,
           endIndex: matchIndex + normalizedQuery.length
         })
@@ -71,8 +75,9 @@ export function useSearchResults() {
     results.sort((a, b) => {
       if (a.pageNumber !== b.pageNumber) return a.pageNumber - b.pageNumber
       
-      const elA = searchableElements.find(e => e.id === a.elementId)!
-      const elB = searchableElements.find(e => e.id === b.elementId)!
+      const elA = elementById.get(a.elementId)
+      const elB = elementById.get(b.elementId)
+      if (!elA || !elB) return 0
       
       // If Y difference is significant (e.g., > 10px, different line), sort by Y
       if (Math.abs(elA.y - elB.y) > 10) {

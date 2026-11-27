@@ -1354,7 +1354,7 @@ a {
   display: none;
 }
 .editor-body {
-  grid-template-columns: 170px minmax(0, 1fr) 265px;
+  grid-template-columns: 186px minmax(0, 1fr) 265px;
 }
 .page-sidebar {
   background: var(--background);
@@ -1368,8 +1368,11 @@ a {
 .dark .pdf-workspace {
   background: #0b1217;
 }
-.thumbnail.active {
+.thumbnail-wrapper.active {
   background: var(--primary-soft);
+}
+.thumbnail.active {
+  background: transparent;
 }
 .editor-footer {
   font-size: 10px;

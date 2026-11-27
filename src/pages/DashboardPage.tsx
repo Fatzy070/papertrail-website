@@ -2,6 +2,7 @@ import { WriterDashboard } from '../writer/WriterDashboard'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, FileText, Clock3, Combine, Scissors, Minimize2, RefreshCw, FolderOpen } from 'lucide-react'
 import { useDocuments } from '../hooks/use-documents'
+import { preloadEditorResources } from '../engine/pdf-cache'
 import { useCurrentUser } from '../hooks/use-auth'
 import { PageHeading } from '../components/ui/PageHeading'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -52,7 +53,7 @@ export function DashboardPage() {
       <WriterDashboard />
       <motion.section variants={itemVariants} className="dashboard-section">
         <div className="section-title-row"><h2><Clock3 size={18} /> Continue where you left off</h2><Link to="/recent">View recent <ArrowUpRight size={14} /></Link></div>
-        {documents.isPending ? <div className="recent-grid" aria-label="Loading recent documents">{[1,2,3,4].map(i => <div key={i} className="skeleton recent-skeleton" />)}</div> : documents.isError ? <div className="error-message" role="alert">We couldn't load your recent documents. <button className="toolbar-button" onClick={() => void documents.refetch()}>Try again</button></div> : recentDocs.length ? <div className="recent-grid">{recentDocs.map(doc => <button key={doc.id} className="recent-document" onClick={() => navigate(`/documents/${doc.id}/edit`)}><div className="document-cover"><FileText size={32} /><span>PDF</span></div><div className="recent-document-info"><strong>{doc.name}</strong><span>{new Date(doc.lastOpenedAt || doc.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span><ArrowUpRight size={16} /></div></button>)}</div> : <div className="empty-state"><FolderOpen size={30} /><h3>Your next edit starts here.</h3><p className="muted">Open or upload a PDF in your library to get started.</p><Link className="toolbar-button bordered" to="/documents">Go to My Documents <ArrowUpRight size={15} /></Link></div>}
+        {documents.isPending ? <div className="recent-grid" aria-label="Loading recent documents">{[1,2,3,4].map(i => <div key={i} className="skeleton recent-skeleton" />)}</div> : documents.isError ? <div className="error-message" role="alert">We couldn't load your recent documents. <button className="toolbar-button" onClick={() => void documents.refetch()}>Try again</button></div> : recentDocs.length ? <div className="recent-grid">{recentDocs.map(doc => <button key={doc.id} className="recent-document" onPointerEnter={preloadEditorResources} onFocus={preloadEditorResources} onClick={() => navigate(`/documents/${doc.id}/edit`)}><div className="document-cover"><FileText size={32} /><span>PDF</span></div><div className="recent-document-info"><strong>{doc.name}</strong><span>{new Date(doc.lastOpenedAt || doc.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span><ArrowUpRight size={16} /></div></button>)}</div> : <div className="empty-state"><FolderOpen size={30} /><h3>Your next edit starts here.</h3><p className="muted">Open or upload a PDF in your library to get started.</p><Link className="toolbar-button bordered" to="/documents">Go to My Documents <ArrowUpRight size={15} /></Link></div>}
       </motion.section>
       
       <motion.section variants={itemVariants} className="dashboard-section">
