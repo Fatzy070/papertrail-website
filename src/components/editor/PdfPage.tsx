@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { EditorPage } from '../../types/editor'
 import { renderPage } from '../../engine/pdf-renderer'
@@ -9,6 +9,7 @@ import { SignatureModal } from './SignatureModal'
 import { NoteOverlay } from './NoteOverlay'
 import { WatermarkOverlay } from './WatermarkOverlay'
 import { useEditorStore } from '../../store/editor-store'
+import { useSearchStore } from '../../store/search-store'
 import { pdfCache } from '../../engine/pdf-cache'
 import { getStroke } from 'perfect-freehand'
 import type { FontId } from '../../engine/font-registry'
@@ -27,20 +28,37 @@ function getSvgPathFromStroke(stroke: number[][]) {
   return d.join(' ')
 }
 
-export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: EditorPage }) {
-
+export function PdfPage({
+  pdf,
+  page,
+  isPriority = false,
+}: {
+  pdf: PDFDocumentProxy
+  page: EditorPage
+  isPriority?: boolean
+}) {
+  const paperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const zoom = useEditorStore((state) => state.zoom)
   const allElements = useEditorStore((state) => state.elements)
-  const elements = allElements.filter(
-    (element) => element.pageId === page.id,
+  const elements = useMemo(
+    () => allElements.filter((element) => element.pageId === page.id),
+    [allElements, page.id],
   )
   const selectElement = useEditorStore((state) => state.selectElement)
   const selectedElementId = useEditorStore((state) => state.selectedElementId)
   const addElement = useEditorStore((state) => state.addElement)
   const activeTool = useEditorStore((state) => state.activeTool)
   const setActiveTool = useEditorStore((state) => state.setActiveTool)
+  const searchOpen = useSearchStore((state) => state.isOpen)
+  const searchQuery = useSearchStore((state) => state.query)
+  const searchActive = searchOpen && searchQuery.trim().length > 0
+  const normalizedSearch = searchActive ? searchQuery.trim().replace(/\s+/g, ' ').toLowerCase() : ''
   const [renderError, setRenderError] = useState(false)
+  const [nearViewport, setNearViewport] = useState(
+    () => Boolean(isPriority) || typeof IntersectionObserver === 'undefined',
+  )
+  const shouldRenderCanvas = Boolean(isPriority) || nearViewport
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false)
@@ -50,6 +68,24 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
   const [showSignatureModal, setShowSignatureModal] = useState<{x: number, y: number} | null>(null)
 
   useEffect(() => {
+    if (shouldRenderCanvas) return
+    const node = paperRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNearViewport(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '1200px 0px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [shouldRenderCanvas])
+
+  useEffect(() => {
+    if (!shouldRenderCanvas) return
     const controller = new AbortController()
 
     let sourceProxy = pdf
@@ -72,7 +108,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
         setRenderError(true)
       })
     return () => controller.abort()
-  }, [pdf, page, zoom])
+  }, [pdf, page, zoom, shouldRenderCanvas])
 
 
 
@@ -197,6 +233,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
 
   return (
     <div
+      ref={paperRef}
       className="pdf-paper"
       style={{
         width: page.width * zoom,
@@ -222,6 +259,7 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
           if (element.type === 'source-image') {
             if (element.deleted) return null;
             const isSelected = selectedElementId === element.id;
+            if (!shouldRenderCanvas && !isSelected) return null;
             return (
               <div
                 key={element.id}
@@ -288,6 +326,27 @@ export function PdfPage({  pdf,  page, }: { pdf: PDFDocumentProxy , page: Editor
               }
               return null
             }
+
+            // Skip mounting inert, transparent source PDF text overlays unless needed
+            if (
+              element.source === 'pdf' &&
+              !element.edited &&
+              !element.link &&
+              selectedElementId !== element.id
+            ) {
+              if (searchActive) {
+                const matchesSearch = element.text
+                  .replace(/\s+/g, ' ')
+                  .toLowerCase()
+                  .includes(normalizedSearch)
+                if (!matchesSearch && !shouldRenderCanvas) return null
+              } else if (activeTool === 'edit-text') {
+                if (!shouldRenderCanvas) return null
+              } else {
+                return null
+              }
+            }
+
             return (
               <TextOverlay
                 key={element.id}

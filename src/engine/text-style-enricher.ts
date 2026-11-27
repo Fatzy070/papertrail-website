@@ -78,122 +78,148 @@ function mupdfColorToHex(color: number[]): string {
 
 // ─── MuPDF span extraction ────────────────────────────────────────────────────
 
+export interface EnrichTextOptions {
+  yieldBetweenPages?: boolean
+  isCancelled?: () => boolean
+}
+
 /**
  * Walk MuPDF StructuredText for all pages and collect per-character span
  * data, grouping consecutive characters that share the same font.
  */
-export async function extractMuPdfSpans(pdfBytes: ArrayBuffer | Uint8Array): Promise<MuPdfSpan[]> {
+export async function extractMuPdfSpans(
+  pdfBytes: ArrayBuffer | Uint8Array,
+  options?: EnrichTextOptions,
+): Promise<MuPdfSpan[]> {
   const spans: MuPdfSpan[] = []
 
   try {
     const mupdf = await import('mupdf')
+    if (options?.isCancelled?.()) return spans
+
     const baseDoc = mupdf.Document.openDocument(pdfBytes, 'application/pdf')
     const doc = baseDoc.asPDF()
-    if (!doc) return spans
-
-    const pageCount = doc.countPages()
-
-    for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-        const page = doc.loadPage(pageIndex) as mupdf.PDFPage
-        const structuredText = page.toStructuredText('preserve-spans')
-
-
-        // Accumulate characters into spans sharing the same font
-        let currentSpan: {
-          fontName: string
-          isBold: boolean
-          isItalic: boolean
-          isMono: boolean
-          isSerif: boolean
-          fontSize: number
-          color: string
-          chars: string[]
-          x0: number
-          y0: number
-          x1: number
-          y1: number
-          baselineY: number
-        } | null = null
-
-        const flushSpan = () => {
-          if (currentSpan && currentSpan.chars.length > 0) {
-            spans.push({
-              pageIndex,
-              x0: currentSpan.x0,
-              y0: currentSpan.y0,
-              x1: currentSpan.x1,
-              y1: currentSpan.y1,
-              baselineY: currentSpan.baselineY,
-              text: currentSpan.chars.join(''),
-              fontName: currentSpan.fontName,
-              isBold: currentSpan.isBold,
-              isItalic: currentSpan.isItalic,
-              isMono: currentSpan.isMono,
-              isSerif: currentSpan.isSerif,
-              fontSize: currentSpan.fontSize,
-              color: currentSpan.color,
-            })
-          }
-          currentSpan = null
-        }
-
-        structuredText.walk({
-          onChar(c: string, origin: [number, number], font: mupdf.Font, size: number, quad: number[], color: number[]) {
-            const fontName = font.getName()
-            const isBold = font.isBold()
-            const isItalic = font.isItalic()
-            const hexColor = mupdfColorToHex(color)
-
-            // Flush when font changes
-            if (
-              currentSpan &&
-              (currentSpan.fontName !== fontName ||
-                currentSpan.isBold !== isBold ||
-                currentSpan.isItalic !== isItalic ||
-                currentSpan.color !== hexColor ||
-                Math.abs(currentSpan.fontSize - size) > 0.5)
-            ) {
-              flushSpan()
-            }
-
-            // Compute bounding box from quad (4 points: ul, ur, ll, lr in MuPDF)
-            const qx0 = Math.min(quad[0], quad[2], quad[4], quad[6])
-            const qy0 = Math.min(quad[1], quad[3], quad[5], quad[7])
-            const qx1 = Math.max(quad[0], quad[2], quad[4], quad[6])
-            const qy1 = Math.max(quad[1], quad[3], quad[5], quad[7])
-
-            if (!currentSpan) {
-              currentSpan = {
-                fontName,
-                isBold,
-                isItalic,
-                isMono: font.isMono(),
-                isSerif: font.isSerif(),
-                fontSize: size,
-                color: hexColor,
-                chars: [],
-                x0: qx0,
-                y0: qy0,
-                x1: qx1,
-                y1: qy1,
-                baselineY: origin[1],
-              }
-            } else {
-              // Extend bounding box
-              currentSpan.x0 = Math.min(currentSpan.x0, qx0)
-              currentSpan.y0 = Math.min(currentSpan.y0, qy0)
-              currentSpan.x1 = Math.max(currentSpan.x1, qx1)
-              currentSpan.y1 = Math.max(currentSpan.y1, qy1)
-            }
-            currentSpan.chars.push(c)
-          },
-          endLine() { flushSpan() },
-          endTextBlock() { flushSpan() },
-        })
-
-        flushSpan()
+    if (!doc) {
+      baseDoc.destroy()
+      return spans
     }
 
+    try {
+      const pageCount = doc.countPages()
+
+      for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+        if (options?.isCancelled?.()) return []
+        const page = doc.loadPage(pageIndex) as mupdf.PDFPage
+        let structuredText: mupdf.StructuredText | null = null
+        try {
+          structuredText = page.toStructuredText('preserve-spans')
+
+          // Accumulate characters into spans sharing the same font
+          let currentSpan: {
+            fontName: string
+            isBold: boolean
+            isItalic: boolean
+            isMono: boolean
+            isSerif: boolean
+            fontSize: number
+            color: string
+            chars: string[]
+            x0: number
+            y0: number
+            x1: number
+            y1: number
+            baselineY: number
+          } | null = null
+
+          const flushSpan = () => {
+            if (currentSpan && currentSpan.chars.length > 0) {
+              spans.push({
+                pageIndex,
+                x0: currentSpan.x0,
+                y0: currentSpan.y0,
+                x1: currentSpan.x1,
+                y1: currentSpan.y1,
+                baselineY: currentSpan.baselineY,
+                text: currentSpan.chars.join(''),
+                fontName: currentSpan.fontName,
+                isBold: currentSpan.isBold,
+                isItalic: currentSpan.isItalic,
+                isMono: currentSpan.isMono,
+                isSerif: currentSpan.isSerif,
+                fontSize: currentSpan.fontSize,
+                color: currentSpan.color,
+              })
+            }
+            currentSpan = null
+          }
+
+          structuredText.walk({
+            onChar(c: string, origin: [number, number], font: mupdf.Font, size: number, quad: number[], color: number[]) {
+              const fontName = font.getName()
+              const isBold = font.isBold()
+              const isItalic = font.isItalic()
+              const hexColor = mupdfColorToHex(color)
+
+              // Flush when font changes
+              if (
+                currentSpan &&
+                (currentSpan.fontName !== fontName ||
+                  currentSpan.isBold !== isBold ||
+                  currentSpan.isItalic !== isItalic ||
+                  currentSpan.color !== hexColor ||
+                  Math.abs(currentSpan.fontSize - size) > 0.5)
+              ) {
+                flushSpan()
+              }
+
+              // Compute bounding box from quad (4 points: ul, ur, ll, lr in MuPDF)
+              const qx0 = Math.min(quad[0], quad[2], quad[4], quad[6])
+              const qy0 = Math.min(quad[1], quad[3], quad[5], quad[7])
+              const qx1 = Math.max(quad[0], quad[2], quad[4], quad[6])
+              const qy1 = Math.max(quad[1], quad[3], quad[5], quad[7])
+
+              if (!currentSpan) {
+                currentSpan = {
+                  fontName,
+                  isBold,
+                  isItalic,
+                  isMono: font.isMono(),
+                  isSerif: font.isSerif(),
+                  fontSize: size,
+                  color: hexColor,
+                  chars: [],
+                  x0: qx0,
+                  y0: qy0,
+                  x1: qx1,
+                  y1: qy1,
+                  baselineY: origin[1],
+                }
+              } else {
+                // Extend bounding box
+                currentSpan.x0 = Math.min(currentSpan.x0, qx0)
+                currentSpan.y0 = Math.min(currentSpan.y0, qy0)
+                currentSpan.x1 = Math.max(currentSpan.x1, qx1)
+                currentSpan.y1 = Math.max(currentSpan.y1, qy1)
+              }
+              currentSpan.chars.push(c)
+            },
+            endLine() { flushSpan() },
+            endTextBlock() { flushSpan() },
+          })
+
+          flushSpan()
+        } finally {
+          structuredText?.destroy()
+          page.destroy()
+        }
+
+        if (options?.yieldBetweenPages && (pageIndex + 1) % 3 === 0 && pageIndex + 1 < pageCount) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0))
+        }
+      }
+    } finally {
+      doc.destroy()
+    }
   } catch (err) {
     console.warn('[text-style-enricher] Failed to extract MuPDF spans:', err)
   }
@@ -262,16 +288,17 @@ export async function enrichTextElementsWithMuPDF(
   elements: TextElement[],
   pdfBytes: ArrayBuffer,
   pages: EditorPage[],
+  options?: EnrichTextOptions,
 ): Promise<TextElement[]> {
   let spans: MuPdfSpan[]
   try {
-    spans = await extractMuPdfSpans(pdfBytes)
+    spans = await extractMuPdfSpans(pdfBytes, options)
   } catch (err) {
     console.warn('[text-style-enricher] MuPDF span extraction failed — skipping enrichment:', err)
     return elements
   }
 
-  if (spans.length === 0) return elements
+  if (options?.isCancelled?.() || spans.length === 0) return elements
 
   // Build a fast lookup: pageIndex → spans
   const spansByPage = new Map<number, MuPdfSpan[]>()
@@ -368,6 +395,7 @@ export async function enrichTextElementsWithMuPDF(
     }
   }
 
+  if (options?.isCancelled?.()) return elements
   try { await registerSourceNumbers(elements, pdfBytes, pages) } catch (error) {
     console.warn('[text-style-enricher] Source number font unavailable:', error)
   }

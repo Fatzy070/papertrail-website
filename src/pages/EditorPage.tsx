@@ -11,8 +11,12 @@ import { PdfPage } from '../components/editor/PdfPage'
 import { VersionHistory } from '../components/editor/VersionHistory'
 import { WatermarkModal } from '../components/editor/WatermarkModal'
 import { exportPdf } from '../engine/pdf-exporter'
-import { loadPdfDocument } from '../engine/pdf-loader'
-import { pdfCache } from '../engine/pdf-cache'
+import { ensurePdfWorker, loadPdfDocument } from '../engine/pdf-loader'
+import {
+  getCachedDocumentBytes,
+  pdfCache,
+  setCachedDocumentBytes,
+} from '../engine/pdf-cache'
 import { useDocument, useSaveDocument, useUpdateDocument } from '../hooks/use-documents'
 import { usePdfEditor } from '../hooks/use-pdf-editor'
 import { useEditorStore } from '../store/editor-store'
@@ -28,19 +32,28 @@ export function EditorPage() {
   const metadata = useDocument(documentId)
   const saveMutation = useSaveDocument()
   const updateMutation = useUpdateDocument()
-  const { pdf, openBytes, loading, error } = usePdfEditor()
+  const { pdf, openBytes, ensureHydrated, loading, error } = usePdfEditor()
   const loaded = useRef(false)
   const [history, setHistory] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const document = useEditorStore((s) => s.document)
-  const elements = useEditorStore((s) => s.elements)
   const dirty = useEditorStore((s) => s.dirty)
-  const watermark = useEditorStore((s) => s.watermark)
   const markSaved = useEditorStore((s) => s.markSaved)
+  const setDocumentName = useEditorStore((s) => s.setDocumentName)
   const setZoom = useEditorStore((s) => s.setZoom)
   const reset = useEditorStore((s) => s.reset)
   const show = useToastStore((s) => s.show)
   const [activePage, setActivePage] = useState(0)
+  const pageCount = document?.pages.length ?? 0
+  const effectiveActivePage = pageCount > 0 ? Math.min(activePage, pageCount - 1) : 0
+  const metadataRef = useRef(metadata.data)
+
+  useEffect(() => {
+    metadataRef.current = metadata.data
+    if (metadata.data?.name) {
+      setDocumentName(metadata.data.name)
+    }
+  }, [metadata.data, setDocumentName])
   const [leaving, setLeaving] = useState(false)
   const [showWatermarkModal, setShowWatermarkModal] = useState(false)
   const [showExportGate, setShowExportGate] = useState(false)
@@ -141,7 +154,7 @@ export function EditorPage() {
     const src = URL.createObjectURL(file)
     const img = new Image()
     img.onload = () => {
-      const activePageInfo = document?.pages[activePage]
+      const activePageInfo = document?.pages[effectiveActivePage]
       if (!activePageInfo) return
       
       const maxWidth = activePageInfo.width * 0.5
@@ -181,8 +194,10 @@ export function EditorPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!metadata.data) return
-    if (pdf && document?.name === metadata.data.name) { console.log("Init skipped because name matched"); return; }
+    if (!documentId) return
+
+    // Pre-warm PDF.js worker while network request is in flight
+    ensurePdfWorker()
 
     const controller = new AbortController()
 
@@ -190,25 +205,45 @@ export function EditorPage() {
       setFetching(true)
       setFetchError(null)
       try {
-        const response = await apiFetchRaw(`/documents/${documentId}/content`, { signal: controller.signal })
-        if (!response.ok) throw new Error(`The PDF could not be downloaded (HTTP ${response.status}).`)
-        
-        const arrayBuffer = await response.arrayBuffer()
-        if (controller.signal.aborted) return
-        
-        await openBytes(metadata.data!.name, arrayBuffer, {
+        const expectedVersion = metadataRef.current?.currentVersionNumber
+        let arrayBuffer = getCachedDocumentBytes(documentId, expectedVersion)
+
+        if (!arrayBuffer) {
+          const response = await apiFetchRaw(`/documents/${documentId}/content`, {
+            signal: controller.signal,
+          })
+          if (!response.ok) {
+            throw new Error(`The PDF could not be downloaded (HTTP ${response.status}).`)
+          }
+          arrayBuffer = await response.arrayBuffer()
+          if (controller.signal.aborted) return
+          setCachedDocumentBytes(
+            documentId,
+            arrayBuffer,
+            metadataRef.current?.currentVersionNumber,
+          )
+        }
+
+        const initialName = metadataRef.current?.name ?? 'Document.pdf'
+        await openBytes(initialName, arrayBuffer, {
           type: 'remote',
           documentId,
         })
-
-        try {
-          await updateMutation.mutateAsync({ 
-            id: documentId, 
-            updates: { lastOpenedAt: new Date().toISOString() } 
-          })
-        } catch (err) {
-          console.error('Failed to update last opened at', err)
+        if (controller.signal.aborted) return
+        if (metadataRef.current?.name && metadataRef.current.name !== initialName) {
+          useEditorStore.getState().setDocumentName(metadataRef.current.name)
         }
+        setFetching(false)
+
+        // Update lastOpenedAt asynchronously without blocking editor readiness
+        void updateMutation
+          .mutateAsync({
+            id: documentId,
+            updates: { lastOpenedAt: new Date().toISOString() },
+          })
+          .catch((err) => {
+            console.error('Failed to update last opened at', err)
+          })
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
         const message = err instanceof Error ? err.message : 'Unable to open PDF.'
@@ -227,7 +262,7 @@ export function EditorPage() {
       controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentId, metadata.data?.name, openBytes])
+  }, [documentId, openBytes])
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (dirty) e.preventDefault()
@@ -253,8 +288,10 @@ export function EditorPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
   async function generate() {
-    if (!document) throw new Error('No PDF is open.')
-    return exportPdf({ ...document, watermark }, elements)
+    await ensureHydrated()
+    const current = useEditorStore.getState()
+    if (!current.document) throw new Error('No PDF is open.')
+    return exportPdf({ ...current.document, watermark: current.watermark }, current.elements)
   }
   async function download() {
     // TEMPORARY DEVELOPMENT TESTING BYPASS
@@ -265,12 +302,13 @@ export function EditorPage() {
     
     try {
       const bytes = await generate()
+      const currentName = useEditorStore.getState().document?.name ?? 'document.pdf'
       const url = URL.createObjectURL(
         new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'application/pdf' }),
       )
       const a = window.document.createElement('a')
       a.href = url
-      a.download = document!.name.replace(/\.pdf$/i, '') + '-edited.pdf'
+      a.download = currentName.replace(/\.pdf$/i, '') + '-edited.pdf'
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (e) {
@@ -282,15 +320,15 @@ export function EditorPage() {
     setSaveError(false)
     try {
       const bytes = await generate()
-      await saveMutation.mutateAsync({
+      const savedBuffer = bytes.slice().buffer as ArrayBuffer
+      const updatedDoc = await saveMutation.mutateAsync({
         id: documentId,
-        blob: new Blob([bytes.slice().buffer as ArrayBuffer], {
+        blob: new Blob([savedBuffer], {
           type: 'application/pdf',
         }),
       })
-      console.log('[DEBUG] Calling markSaved')
-      markSaved(bytes.slice().buffer as ArrayBuffer)
-      console.log('[DEBUG] markSaved completed')
+      setCachedDocumentBytes(documentId, savedBuffer, updatedDoc.currentVersionNumber)
+      markSaved(savedBuffer)
       show('Document saved.', 'success')
     } catch (e) {
       setSaveError(true)
@@ -307,11 +345,27 @@ export function EditorPage() {
     if (result.data) {
       const url = documentsApi.contentUrl(documentId)
       const response = await fetch(url, { credentials: 'include' })
-      await openBytes(result.data.name, await response.arrayBuffer(), {
+      const restoredBytes = await response.arrayBuffer()
+      setCachedDocumentBytes(documentId, restoredBytes, result.data.currentVersionNumber)
+      await openBytes(result.data.name, restoredBytes, {
         type: 'remote',
         documentId,
       })
     }
+  }
+
+  function handleDeletePage(index: number) {
+    const currentPages = useEditorStore.getState().document?.pages
+    if (!currentPages || currentPages.length <= 1) return
+    const deletedPageNumber = index + 1
+    const nextCount = currentPages.length - 1
+    useEditorStore.getState().deletePage(index)
+    setActivePage((prev) => {
+      const clampedPrev = Math.min(prev, currentPages.length - 1)
+      if (index < clampedPrev) return Math.max(0, clampedPrev - 1)
+      return Math.min(clampedPrev, nextCount - 1)
+    })
+    show(`Page ${deletedPageNumber} deleted. Use Undo to restore.`, 'info')
   }
   return (
     <main className="editor-shell">
@@ -345,13 +399,14 @@ export function EditorPage() {
         <PageSidebar
           pdf={pdf}
           pages={document?.pages ?? []}
-          active={activePage}
+          active={effectiveActivePage}
           onSelect={(index) => {
             setActivePage(index)
             window.document
               .getElementById(`pdf-page-${index}`)
               ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }}
+          onDeletePage={handleDeletePage}
           onImportFromFile={(index) => {
             importTargetIndexRef.current = index
             pdfInputRef.current?.click()
@@ -361,10 +416,10 @@ export function EditorPage() {
         />
         <section ref={workspaceRef} className="pdf-workspace relative" aria-label="Document canvas">
           <div className="pdf-pages">
-            {(loading || metadata.isPending || fetching) && (
+            {!document && (loading || metadata.isPending || fetching) && (
               <LoadingState label="Opening your PDF" />
             )}
-            {(error || metadata.error || fetchError) && (
+            {(error || fetchError || (!document && metadata.error)) && (
               <div className="error-message" role="alert">
                 {error ?? fetchError ?? metadata.error?.message}
                 <p>Return to your documents and try opening the PDF again.</p>
@@ -381,7 +436,11 @@ export function EditorPage() {
                   <p className="pdf-page-caption">
                     PAGE {index + 1} OF {document.pages.length}
                   </p>
-                  <PdfPage pdf={pdf} page={page} />
+                  <PdfPage
+                    pdf={pdf}
+                    page={page}
+                    isPriority={index === 0 || Math.abs(index - effectiveActivePage) <= 1}
+                  />
                 </div>
               ))}
           </div>
@@ -390,7 +449,7 @@ export function EditorPage() {
       </div>
       <footer className="editor-footer">
         <span>
-          Page {activePage + 1} of {document?.pages.length ?? '—'}
+          Page {pageCount > 0 ? effectiveActivePage + 1 : '—'} of {pageCount > 0 ? pageCount : '—'}
         </span>
         <span>PDF document</span>
         <span>Double-click the page to add text</span>

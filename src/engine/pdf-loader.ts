@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import PdfWorker from './pdf.worker.entry?worker'
 
-function ensurePdfWorker() {
+export function ensurePdfWorker() {
   if (!pdfjsLib.GlobalWorkerOptions.workerPort) {
     pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
   }
